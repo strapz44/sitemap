@@ -1,0 +1,13 @@
+module.exports = {
+  name: 'prerender',
+  type: 'web',
+  framework: 'vue',
+  root: 'v-prerender',
+  build: {
+    command: 'npm run build',
+    output: 'dist'
+  },
+  env: {
+    VUE_APP_API_URL: 'https://api.prerender.windsurf.dev'
+  }
+};

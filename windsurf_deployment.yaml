@@ -1,0 +1,7 @@
+project: prerender
+type: web_application
+framework: vue
+root_dir: v-prerender
+build:
+  command: npm run build
+  output_dir: dist/v-prerender

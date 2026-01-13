@@ -1,0 +1,10 @@
+framework: node
+buildCommand: npm install && npm run build
+startCommand: npm start
+env:
+  - key: MONGODB_URI
+    value: mongodb+srv://privatjonathan1:<db_password>@cluster0.pmcq9kg.mongodb.net/prerender?retryWrites=true&w=majority&appName=Cluster0
+  - key: NODE_ENV
+    value: production
+  - key: PORT
+    value: "3000"

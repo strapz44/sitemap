@@ -1,0 +1,4 @@
+[app]
+name = "prerender"
+type = "vue"
+root = "v-prerender"

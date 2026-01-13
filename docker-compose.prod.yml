@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  backend:
+    build: ./ms-prerender
+    environment:
+      - MONGODB_URI=mongodb+srv://privatjonathan1:<db_password>@cluster0.pmcq9kg.mongodb.net/prerender?retryWrites=true&w=majority&appName=Cluster0
+      - NODE_ENV=production
+      - PORT=3000
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build: ./v-prerender
+    ports:
+      - "80:80"
+    environment:
+      - VUE_APP_API_URL=http://backend:3000
+    depends_on:
+      - backend

@@ -1,0 +1,4 @@
+app: prerender
+type: web
+framework: vue
+root: v-prerender

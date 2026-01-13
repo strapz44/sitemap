@@ -1,0 +1,25 @@
+{
+  "project": "prerender",
+  "type": "web",
+  "root": "v-prerender",
+  "framework": "vue",
+  "build": {
+    "command": "npm run build",
+    "output": "dist"
+  },
+  "services": {
+    "api": {
+      "path": "./ms-prerender",
+      "env": {
+        "MONGODB_URI": "mongodb+srv://privatjonathan1:<db_password>@cluster0.pmcq9kg.mongodb.net/prerender?retryWrites=true&w=majority&appName=Cluster0",
+        "NODE_ENV": "production"
+      }
+    },
+    "web": {
+      "path": "./v-prerender",
+      "env": {
+        "VUE_APP_API_URL": "https://api.prerender.windsurf.dev"
+      }
+    }
+  }
+}

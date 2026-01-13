@@ -1,0 +1,302 @@
+<template>
+  <div class="app-wrapper">
+    <div class="page-container">
+      <h1 class="main-title">SITEMAPS</h1>
+      
+      <div class="sitemap-section">
+        <h2 class="section-title">AJOUTER UN SITEMAP</h2>
+        <div class="input-group">
+          <input
+            placeholder="entre ton site...."
+            class="input"
+            name="text"
+            type="text"
+            v-model="url"
+          />
+          <button class="btn-add" @click="addSitemap">
+            Ajouter
+          </button>
+        </div>
+      </div>
+
+      <div class="sitemap-list">
+        <h2 class="section-title">LISTE DES SITEMAPS</h2>
+        <div class="table">
+          <div class="table-header">
+            <div class="header-cell">NOM DU SITE</div>
+            <div class="header-cell">PAGES</div>
+            <div class="header-cell">ACTIONS</div>
+          </div>
+          
+          <div v-for="(item, idx) in filteredSitemaps" :key="idx" class="table-row">
+            <div class="table-cell">{{ item.siteName }}</div>
+            <div class="table-cell">{{ item.sitemap.urlset.url.length }}</div>
+            <div class="table-cell actions">
+              <button class="action-btn" @click="openSiteSummary(item)">
+                Voir
+              </button>
+              <button class="action-btn" @click="refreshSitemap(item.siteName)">
+                Recharger
+              </button>
+              <button class="delete-btn" @click="deleteSitemap(item.siteName)">
+                <svg viewBox="0 0 448 512" class="svgIcon">
+                  <path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+
+const url = ref('')
+const sitemaps = ref([])
+const search = ref('')
+
+const addSitemap = () => {
+  if (!url.value.trim()) return
+  const newSitemap = {
+    siteName: url.value,
+    sitemap: {
+      urlset: {
+        url: [
+          {
+            loc: `https://${url.value}/page1`,
+            priority: '0.8',
+            lastmod: '2025-06-30',
+            changefreq: 'weekly'
+          },
+          {
+            loc: `https://${url.value}/page2`,
+            priority: '0.5',
+            lastmod: '2025-06-28',
+            changefreq: 'monthly'
+          }
+        ]
+      }
+    }
+  }
+  sitemaps.value.push(newSitemap)
+  url.value = ''
+}
+
+const filteredSitemaps = computed(() => {
+  if (!search.value.trim()) return sitemaps.value
+  return sitemaps.value.filter(item =>
+    item.siteName.toLowerCase().includes(search.value.toLowerCase())
+  )
+})
+
+const deleteSitemap = (siteName) => {
+  if (!confirm(`Supprimer le sitemap pour ${siteName} ?`)) return
+  sitemaps.value = sitemaps.value.filter(item => item.siteName !== siteName)
+}
+
+const refreshSitemap = (siteName) => {
+  console.log(`Rechargement du sitemap pour : ${siteName}`)
+}
+
+const openSiteSummary = (item) => {
+  const urls = item.sitemap.urlset.url
+  console.log('Détails du sitemap pour:', item.siteName)
+  console.log('Liste des URLs:')
+  urls.forEach((url, index) => {
+    console.log(`${index + 1}. ${url.loc}`)
+    console.log(`   Priority: ${url.priority}`)
+    console.log(`   Last Modified: ${url.lastmod}`)
+    console.log(`   Change Frequency: ${url.changefreq}`)
+    console.log('---')
+  })
+}
+</script>
+
+<style scoped>
+.app-wrapper {
+  background-color: #1a1a1a;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  position: relative;
+}
+
+.page-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.main-title {
+  font-size: 2rem;
+  background: linear-gradient(45deg, #fff, #888);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 1.2rem;
+  color: white;
+  margin-bottom: 1rem;
+}
+
+.input-group {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.input {
+  color: white;
+  border: 2px solid #8707ff;
+  border-radius: 10px;
+  padding: 10px 25px;
+  background: transparent;
+  max-width: 190px;
+}
+
+.input:active {
+  box-shadow: 2px 2px 15px #8707ff inset;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #8707ff;
+  box-shadow: 0 0 10px #8707ff;
+}
+
+.btn-add {
+  --green: #1BFD9C;
+  font-size: 15px;
+  padding: 0.7em 2.7em;
+  letter-spacing: 0.06em;
+  position: relative;
+  font-family: inherit;
+  border-radius: 0.6em;
+  overflow: hidden;
+  transition: all 0.3s;
+  line-height: 1.4em;
+  border: 2px solid var(--green);
+  background: linear-gradient(to right, rgba(27, 253, 156, 0.1) 1%, transparent 40%,transparent 60% , rgba(27, 253, 156, 0.1) 100%);
+  color: var(--green);
+  box-shadow: inset 0 0 10px rgba(27, 253, 156, 0.4), 0 0 9px 3px rgba(27, 253, 156, 0.1);
+}
+
+.btn-add:hover {
+  color: #82ffc9;
+  box-shadow: inset 0 0 10px rgba(27, 253, 156, 0.6), 0 0 9px 3px rgba(27, 253, 156, 0.2);
+}
+
+.btn-add:before {
+  content: "";
+  position: absolute;
+  left: -4em;
+  width: 4em;
+  height: 100%;
+  top: 0;
+  transition: transform .4s ease-in-out;
+  background: linear-gradient(to right, transparent 1%, rgba(27, 253, 156, 0.1) 40%,rgba(27, 253, 156, 0.1) 60% , transparent 100%);
+}
+
+.btn-add:hover:before {
+  transform: translateX(15em);
+}
+
+.table {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(30, 30, 30, 0.5);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  background: rgba(42, 42, 42, 0.8);
+  padding: 1rem;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-cell {
+  color: #888;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.table-row:hover {
+  background: rgba(42, 42, 42, 0.8);
+  transform: translateY(-2px);
+}
+
+.table-cell {
+  color: white;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.action-btn {
+  background-color: transparent;
+  border: 1px solid #1BFD9C;
+  color: #1BFD9C;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.action-btn:hover {
+  background-color: rgba(27, 253, 156, 0.1);
+  box-shadow: 0 0 10px rgba(27, 253, 156, 0.2);
+}
+
+.delete-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: transparent;
+  border: 1px solid #1BFD9C;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  padding: 0;
+}
+
+.delete-btn:hover {
+  background-color: #ff4444;
+  border-color: #ff4444;
+}
+
+.svgIcon {
+  width: 16px;
+  height: 16px;
+  transition: all 0.3s;
+}
+
+.svgIcon path {
+  fill: #1BFD9C;
+}
+
+.delete-btn:hover .svgIcon path {
+  fill: white;
+}
+</style>
