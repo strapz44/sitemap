@@ -2,7 +2,10 @@
   <div class="details-page">
     <div class="sticky-header">
       <h2 class="section-title">Détails du sitemap: {{ siteName }}</h2>
-      <button class="btn-add" @click="$router.back()">Fermer</button>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn-add" @click="downloadHtml" :disabled="downloading">{{ downloading ? 'Téléchargement...' : 'Télécharger HTML' }}</button>
+        <button class="btn-add" @click="$router.back()">Fermer</button>
+      </div>
     </div>
 
     <div v-if="loading" class="loading">Chargement...</div>
@@ -100,11 +103,18 @@ const API_URL = (import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_U
 const loading = ref(true)
 const doc = ref(null)
 const summary = ref(null)
+const downloading = ref(false)
 
 onMounted(async () => {
   try {
-    const { data } = await axios.get(`${API_URL}/sitemaps/${encodeURIComponent(siteName)}`)
-    doc.value = data
+    // Prefer the normalized endpoint
+    try {
+      const { data } = await axios.get(`${API_URL}/sitemap/${encodeURIComponent(siteName)}`)
+      doc.value = data
+    } catch (e) {
+      const { data } = await axios.get(`${API_URL}/sitemaps/${encodeURIComponent(siteName)}`)
+      doc.value = data
+    }
     try {
       const { data: sum } = await axios.get(`${API_URL}/sitemaps/${encodeURIComponent(siteName)}/summary`)
       summary.value = sum
@@ -161,6 +171,8 @@ function daysSince(iso){
   return isNaN(t) ? Infinity : (Date.now() - t) / (1000*60*60*24)
 }
 const score = computed(() => {
+  const s = summary.value?.score
+  if (typeof s === 'number' && !isNaN(s)) return s
   const d = daysSince(summary.value?.lastmodLatest)
   if (d <= 7) return 98
   if (d <= 30) return 85
@@ -189,6 +201,28 @@ const indexPct = computed(() => {
   return Math.max(0, Math.min(100, Math.round((i / t) * 100)))
 })
 const indexedText = computed(() => `${indexIndexed.value} / ${indexTotal.value}`)
+
+async function downloadHtml(){
+  if (!siteName) return
+  downloading.value = true
+  try {
+    const limit = Math.min((summary.value?.urlsSubmitted || totalUrls.value || 25), 100)
+    const { data } = await axios.get(`${API_URL}/sitemaps/${encodeURIComponent(siteName)}/html`, { params: { limit, concurrency: 4, save: true } })
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' })
+    const a = document.createElement('a')
+    const safe = String(siteName).replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'') || 'pages'
+    a.href = URL.createObjectURL(blob)
+    a.download = `${safe}-html.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(a.href)
+  } catch (e) {
+    console.error(e)
+  } finally {
+    downloading.value = false
+  }
+}
 </script>
 
 <style scoped>

@@ -65,7 +65,9 @@ onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
 
 <style scoped>
 .navbar {
-  background: transparent;
+  background: linear-gradient(to bottom, rgba(248, 250, 252, 0.7), rgba(248, 250, 252, 0));
+  backdrop-filter: saturate(120%) blur(10px);
+  -webkit-backdrop-filter: saturate(120%) blur(10px);
   padding: 0;
   position: sticky;
   top: 0;
@@ -85,11 +87,11 @@ onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
 
 .card-nav {
   border-radius: 12px;
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: none;
-  box-shadow: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.25));
+  backdrop-filter: saturate(160%) blur(14px);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.25);
   padding: 0.6rem 1rem;
   position: relative;
   overflow: visible;
@@ -130,14 +132,14 @@ onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
 
 .menu-btn {
   justify-self: end;
-  background: #ffffff !important;
-  background-color: #ffffff !important;
-  border: 1px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.6) !important;
+  background-color: rgba(255, 255, 255, 0.6) !important;
+  border: 1px solid rgba(148, 163, 184, 0.35);
   border-radius: 8px;
   padding: 0.35rem 0.6rem;
   cursor: pointer;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
+  backdrop-filter: saturate(160%) blur(10px);
+  -webkit-backdrop-filter: saturate(160%) blur(10px);
   transition: background-color .2s ease, border-color .2s ease;
 }
 .menu-btn:hover {
@@ -155,11 +157,11 @@ onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
   max-width: 1200px;
   padding: 0.75rem;
   border-radius: 12px;
-  background: #ffffff;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: saturate(160%) blur(16px);
+  -webkit-backdrop-filter: saturate(160%) blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 12px 28px rgba(2,6,23,0.12), inset 0 1px 0 rgba(255,255,255,0.25);
   display: grid;
   gap: 0.6rem;
   opacity: 0;

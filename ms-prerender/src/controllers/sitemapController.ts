@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import axios from 'axios';
 import SitemapService from '../services/SitemapService';
 import SitemapDao from '../dao/sitemapDao';
 
@@ -14,6 +15,8 @@ sitemapController.post('/:url/refresh', async (req, res) => { await Ctrl.post(re
 sitemapController.delete('/:url', async (req, res) => { await Ctrl.delete(req, res); }); // ✅ Attention au encodage côté client
 // Summary for a given site
 sitemapController.get('/:url/summary', async (req, res) => { await Ctrl.summary(req, res); });
+sitemapController.get('/:url/html/snapshots', async (req, res) => { await Ctrl.htmlSnapshots(req, res); });
+sitemapController.get('/:url/html', async (req, res) => { await Ctrl.html(req, res); });
 // Get single sitemap doc
 sitemapController.get('/:url', async (req, res) => { await Ctrl.getOne(req, res); });
 
@@ -26,7 +29,50 @@ class Ctrl {
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
+
   }
+
+  public static async html(req: any, res: any): Promise<void> {
+    const siteName = decodeURIComponent(req.params.url);
+    try {
+      const doc = await SitemapDao.getByUrl(siteName);
+      if (!doc) { res.status(404).json({ error: 'Sitemap not found' }); return; }
+      const raw: any[] = Array.isArray(doc?.urls) ? doc.urls : (doc?.sitemap?.urlset?.url || []);
+      const urls: string[] = raw.map((u: any) => Array.isArray(u?.loc) ? u.loc[0] : u?.loc).filter((u: any) => typeof u === 'string' && !!u);
+      const limit = Math.max(1, Math.min(+(req.query.limit || 25), urls.length));
+      const conc = Math.max(1, Math.min(+(req.query.concurrency || 4), 16));
+      const targets = urls.slice(0, limit);
+      let i = 0;
+      const results: any[] = new Array(targets.length);
+      async function worker() {
+        for (;;) {
+          const idx = i++;
+          if (idx >= targets.length) break;
+          const u = targets[idx];
+          try {
+            const r = await axios.get(u, { responseType: 'text', timeout: 15000, headers: { 'User-Agent': 'Mozilla/5.0' } });
+            results[idx] = { url: u, status: r.status, html: r.data };
+          } catch (e: any) {
+            const status = e?.response?.status || null;
+            const msg = e?.message || 'error';
+            results[idx] = { url: u, status, html: null, error: String(msg) };
+          }
+        }
+      }
+      const workers = Array.from({ length: Math.min(conc, targets.length) }, () => worker());
+      await Promise.all(workers);
+      const snapshot = { siteName, createdAt: new Date().toISOString(), count: targets.length, pages: results };
+      const saveFlag = String(req.query.save || '').toLowerCase();
+      const shouldSave = saveFlag === 'true' || saveFlag === '1' || saveFlag === 'yes';
+      if (shouldSave) {
+        await SitemapDao.createHtmlSnapshot(snapshot);
+      }
+      res.json({ siteName, count: targets.length, pages: results, saved: shouldSave, savedAt: shouldSave ? snapshot.createdAt : null });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  }
+
 
   public static async add(req: any, res: any): Promise<void> {
     try {
@@ -42,6 +88,7 @@ class Ctrl {
       // Sauvegarder dans la base de données
       await SitemapDao.create({
         siteName: url,
+        fetchedAt: new Date().toISOString(),
         urls: sitemap.urlset.url.map(u => ({
           loc: u.loc[0],
           priority: u.priority?.[0],
@@ -87,8 +134,7 @@ class Ctrl {
   public static async getOne(req: any, res: any): Promise<void> {
     const siteName = decodeURIComponent(req.params.url);
     try {
-      const all = await SitemapDao.get();
-      const doc = all.find((d: any) => d.siteName === siteName);
+      const doc = await SitemapDao.getByUrl(siteName);
       if (!doc) {
         res.status(404).json({ error: 'Sitemap not found' });
         return;
@@ -103,8 +149,7 @@ class Ctrl {
   public static async summary(req: any, res: any): Promise<void> {
     const siteName = decodeURIComponent(req.params.url);
     try {
-      const all = await SitemapDao.get();
-      const doc = all.find((d: any) => d.siteName === siteName);
+      const doc = await SitemapDao.getByUrl(siteName);
       if (!doc) {
         res.status(404).json({ error: 'Sitemap not found' });
         return;
@@ -144,15 +189,49 @@ class Ctrl {
         changefreqCounts[k] = (changefreqCounts[k] || 0) + 1;
       }
 
+      const total = norm.length || 0;
+      const withLastmod = norm.filter(n => !!n.lastmod).length;
+      const completeness = total ? Math.max(0, Math.min(100, Math.round((withLastmod / total) * 100))) : 0;
+      const goodFreqs = new Set(['always','hourly','daily','weekly','monthly']);
+      const withFreq = norm.filter(n => !!n.changefreq).length;
+      const goodFreqCount = norm.filter(n => n.changefreq && goodFreqs.has(String(n.changefreq).toLowerCase())).length;
+      const freqQuality = withFreq ? Math.max(0, Math.min(100, Math.round((goodFreqCount / withFreq) * 100))) : 0;
+      let recency = 0;
+      if (lastmodLatest) {
+        const days = (Date.now() - new Date(lastmodLatest).getTime()) / (1000*60*60*24);
+        if (days <= 7) recency = 100;
+        else if (days <= 30) recency = 85;
+        else if (days <= 90) recency = 67;
+        else if (days <= 180) recency = 50;
+        else if (days <= 365) recency = 35;
+        else recency = 20;
+      } else {
+        recency = 0;
+      }
+      const score = Math.max(0, Math.min(100, Math.round(0.5 * recency + 0.3 * completeness + 0.2 * freqQuality)));
+
       const payload = {
         siteName,
         totalUrls: norm.length,
         changefreqCounts,
         lastmodLatest,
         lastCrawl: doc?.fetchedAt || null,
+        urlsSubmitted: norm.length,
+        urlsIndexed: 0,
+        score
       };
 
       res.json(payload);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  }
+
+  public static async htmlSnapshots(req: any, res: any): Promise<void> {
+    const siteName = decodeURIComponent(req.params.url);
+    try {
+      const snaps = await SitemapDao.getHtmlSnapshots(siteName);
+      res.json({ siteName, snapshots: snaps });
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

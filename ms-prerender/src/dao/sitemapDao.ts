@@ -6,6 +6,7 @@ const USE_MEMORY = String(process.env.USE_MEMORY_DB || '').toLowerCase() === 'tr
 
 let client: MongoClient | null = null;
 let memoryStore: any[] = [];
+let memorySnapshots: any[] = [];
 
 async function getClient(): Promise<MongoClient> {
   if (client && (client as any).topology?.isConnected?.()) return client;
@@ -45,6 +46,16 @@ export default class SitemapDao {
     return sitemaps;
   }
 
+  public static async getByUrl(siteName: string): Promise<any | null> {
+    if (USE_MEMORY || !URI) {
+      return memoryStore.find(d => d.siteName === siteName) || null;
+    }
+    const cli = await getClient();
+    const collection = cli.db(DB_NAME).collection('sitemaps');
+    const doc = await collection.findOne({ siteName });
+    return doc;
+  }
+
   // ✅ Supprimer un sitemap par son nom de domaine
   public static async deleteByUrl(siteName: string): Promise<void> {
     if (USE_MEMORY || !URI) {
@@ -58,6 +69,26 @@ export default class SitemapDao {
     const collection = cli.db(DB_NAME).collection('sitemaps');
     const result = await collection.deleteOne({ siteName });
     console.log(`🗑 ${result.deletedCount} document supprimé pour ${siteName}`);
+  }
+
+  public static async createHtmlSnapshot(snapshot: any): Promise<void> {
+    if (USE_MEMORY || !URI) {
+      memorySnapshots.push(snapshot);
+      return;
+    }
+    const cli = await getClient();
+    const collection = cli.db(DB_NAME).collection('html_snapshots');
+    await collection.insertOne(snapshot);
+  }
+
+  public static async getHtmlSnapshots(siteName: string): Promise<any[]> {
+    if (USE_MEMORY || !URI) {
+      return memorySnapshots.filter(s => s.siteName === siteName);
+    }
+    const cli = await getClient();
+    const collection = cli.db(DB_NAME).collection('html_snapshots');
+    const docs = await collection.find({ siteName }).sort({ createdAt: -1 }).toArray();
+    return docs;
   }
 }
 
