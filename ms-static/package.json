@@ -1,0 +1,10 @@
+{
+  "name": "ms-static",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node index.js",
+    "start": "node index.js"
+  }
+}
