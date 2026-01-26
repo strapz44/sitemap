@@ -29,3 +29,30 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+# Caches
+.cache/
+.parcel-cache/
+.vite/
+.turbo/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+
+# Lint caches
+.eslintcache
+
+# VS Code history (extension)
+.history/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+~*
+*.bak
+*.swp
