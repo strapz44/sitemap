@@ -1,6 +1,7 @@
 <template>
   <div id="app">
-    <AppNavbar />
+    <AppNavbar @open-login="loginOpen = true" />
+    <LoginPanel :open="loginOpen" @close="loginOpen = false" />
     <router-view />
     <AppDock />
   </div>
@@ -9,10 +10,14 @@
 <script setup>
 import AppNavbar from './components/AppNavbar.vue'
 import AppDock from './components/AppDock.vue'
+import LoginPanel from './components/LoginPanel.vue'
+import { ref } from 'vue'
+const loginOpen = ref(false)
 </script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Orbitron:wght@600&display=swap');
+@import url('./assets/styles/theme-glass-v1.css');
 
 body {
   font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;

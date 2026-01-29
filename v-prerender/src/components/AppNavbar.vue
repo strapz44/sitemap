@@ -7,11 +7,14 @@
       <a href="#" ref="analyticsRef" :class="['nav-link','tab', { active: route.name === 'analytics' }]" @mouseenter="(e) => positionIndicator(e.currentTarget)" @click.prevent="go('analytics')">Analytics</a>
       <span class="indicator" ref="indicatorRef"></span>
     </div>
-    <button class="menu-btn" :aria-expanded="isOpen.toString()" aria-label="Ouvrir le menu" @click="toggle">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-        <path d="M4 6h16M4 12h16M4 18h16" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-    </button>
+    <div class="right-actions">
+      <button class="login-btn" @click="emit('open-login')">Connexion</button>
+      <button class="menu-btn" :aria-expanded="isOpen.toString()" aria-label="Ouvrir le menu" @click="toggle">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+          <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <div class="menu-panel" :class="{ open: isOpen }">
@@ -27,6 +30,7 @@ import { ref, onMounted, onBeforeUnmount, nextTick, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
+const emit = defineEmits(['open-login'])
 const isOpen = ref(false)
 function toggle(){ isOpen.value = !isOpen.value }
 const linksEl = ref(null)
@@ -118,7 +122,7 @@ onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
 }
 
 .nav-link:hover {
-  color: #8b5cf6;
+  color: var(--accent);
   text-shadow: none;
   transform: none;
   box-shadow: none;
@@ -126,9 +130,9 @@ onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
 
 /* Tabs (Figma-like) */
 .nav-link.tab { border-radius: 6px; padding-bottom: 0.35rem; }
-.nav-link.tab.active { color: #8b5cf6; }
+.nav-link.tab.active { color: var(--accent); }
 .links { display: flex; gap: 1rem; align-items: center; justify-self: center; position: relative; }
-.indicator { position: absolute; left: 0; bottom: -6px; height: 2px; width: 0; background: #8b5cf6; border-radius: 999px; opacity: 0; transition: transform .18s ease, width .18s ease, opacity .18s ease; }
+.indicator { position: absolute; left: 0; bottom: -6px; height: 2px; width: 0; background: var(--accent); border-radius: 999px; opacity: 0; transition: transform .18s ease, width .18s ease, opacity .18s ease; }
 
 .menu-btn {
   justify-self: end;
@@ -141,11 +145,24 @@ onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
   backdrop-filter: saturate(160%) blur(10px);
   -webkit-backdrop-filter: saturate(160%) blur(10px);
   transition: background-color .2s ease, border-color .2s ease;
+  color: var(--accent);
 }
 .menu-btn:hover {
-  border-color: #8b5cf6;
+  border-color: var(--accent);
   box-shadow: none;
 }
+
+.right-actions { display: flex; gap: 8px; align-items: center; justify-self: end; }
+.login-btn {
+  background: #ffffff;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.login-btn:hover { background: var(--accent-hover-bg); }
 
 /* Responsive panel (CardNav style) */
 .menu-panel {
