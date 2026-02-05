@@ -1,6 +1,5 @@
 <template>
   <div class="table-container">
-    <h2 class="title">Liste des Sitemaps</h2>
     <table>
       <thead>
         <tr>

@@ -1,8 +1,7 @@
 <template>
   <div class="details-page">
     <div class="sticky-header">
-      <h2 class="section-title">Détails du sitemap: {{ siteName }}</h2>
-      <div style="display:flex; gap:8px; align-items:center;">
+      <div style="display:flex; gap:8px; align-items:center; margin-left:auto;">
         <button class="btn-add" @click="downloadHtml" :disabled="downloading">{{ downloading ? 'Téléchargement...' : 'Télécharger HTML' }}</button>
         <button class="btn-add" @click="$router.back()">Fermer</button>
       </div>
@@ -13,12 +12,7 @@
       <div v-if="!doc" class="error">Aucune donnée trouvée.</div>
       <div v-else>
         <div class="metrics-panel">
-          <div class="metrics-header">
-            <div>
-              <h3 class="metrics-title">Analyse détaillée</h3>
-              <p class="metrics-sub">Métriques complètes de performance</p>
-            </div>
-          </div>
+          <div class="metrics-header"></div>
 
           <div class="metrics-grid">
             <div class="metric-card">
@@ -98,7 +92,7 @@ import axios from 'axios'
 const route = useRoute()
 const siteName = route.params.siteName
 
-const API_URL = (import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_URL) || 'http://localhost:3000/api'
+const API_URL = (import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_URL) || '/api'
 
 const loading = ref(true)
 const doc = ref(null)
@@ -244,7 +238,7 @@ async function downloadHtml(){
 }
 .section-title {
   font-size: 1.4rem;
-  color: #8b5cf6;
+  color: #334155;
   margin-bottom: 1rem;
 }
 .urls-list { margin-bottom: 1.5rem; }

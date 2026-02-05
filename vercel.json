@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "installCommand": "npm --prefix v-prerender ci || npm --prefix v-prerender install",
+  "buildCommand": "npm --prefix v-prerender run build",
+  "outputDirectory": "v-prerender/dist",
+  "rewrites": [
+    { "source": "/((?!api/|.*\\..*).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/index.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    }
+  ]
+}

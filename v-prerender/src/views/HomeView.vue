@@ -1,6 +1,5 @@
 <template>
   <div class="home">
-    <h1>Bienvenue</h1>
     <p>Outil de gestion des sitemaps</p>
   </div>
 </template>

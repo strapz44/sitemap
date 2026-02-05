@@ -1,6 +1,5 @@
 <template>
   <div class="form-container">
-    <h2 class="sitemap-title">SITEMAP</h2>
     <button @click="addSitemap">Ajouter</button>
   </div>
 </template>

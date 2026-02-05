@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div id="app" class="theme-violet">
     <AppNavbar @open-login="loginOpen = true" />
     <LoginPanel :open="loginOpen" @close="loginOpen = false" />
     <router-view />
@@ -17,7 +17,9 @@ const loginOpen = ref(false)
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Orbitron:wght@600&display=swap');
+@import url('./assets/styles/tailwind.css');
 @import url('./assets/styles/theme-glass-v1.css');
+@import url('./assets/styles/figma-tokens.css');
 
 body {
   font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -65,15 +67,6 @@ button:not(.btn-add):not(.action-btn):not(.delete-btn):not(.menu-btn) {
   padding: 8px 14px;
   border: none;
   border-radius: 6px;
-  background-color: #32cd32;
-  color: #0e0e0e;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
 }
 
-button:not(.btn-add):not(.action-btn):not(.delete-btn):not(.menu-btn):hover {
-  background-color: #9fff9f;
-  color: #000;
-}
 </style>

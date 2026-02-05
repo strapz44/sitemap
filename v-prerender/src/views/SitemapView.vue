@@ -10,63 +10,25 @@
         :colors="['#8b5cf6', '#1BFD9C', '#4079ff']"
       />
       <div class="page-container">
-        <GradientText
-          :colors="['#40ffaa', '#4079ff', '#40ffaa', '#4079ff', '#40ffaa']"
-          :animationSpeed="3"
-          :showBorder="false"
-          :animated="false"
-          :strokeWidth="0"
-          :shadow="false"
-          textShadow=""
-          class="main-title">
-          SITEMAPS
-        </GradientText>
         
-        <div class="sitemap-section">
-          <GradientText
-            :colors="['#ffffff', '#8b5cf6']"
-            :animationSpeed="3"
-            :showBorder="false"
-            :animated="false"
-            :strokeWidth="0"
-            :shadow="false"
-            textShadow=""
-            class="section-title">
-            AJOUTER UN SITEMAP
-          </GradientText>
-          <div class="input-group">
-            <input
-              placeholder="Entrez votre site"
-              class="input"
-              name="text"
-              type="text"
-              v-model="url"
-              :disabled="isLoading"
-            />
-            <button class="btn-add" @click="addSitemap" :disabled="isLoading">
-              {{ isLoading ? 'Chargement...' : 'Ajouter' }}
-            </button>
-          </div>
-          <div v-if="error" class="error-message">{{ error }}</div>
+        <div class="input-group">
+          <input
+            placeholder="Entrez votre site"
+            class="input"
+            name="text"
+            type="text"
+            v-model="url"
+            :disabled="isLoading"
+          />
+          <GlassGenerateButton :disabled="isLoading" size="1.1rem" @click="addSitemap">Ajouter</GlassGenerateButton>
         </div>
+        <div v-if="error" class="error-message">{{ error }}</div>
   
         <div class="sitemap-list">
-          <GradientText
-            :colors="['#ffffff', '#8b5cf6']"
-            :animationSpeed="3"
-            :showBorder="false"
-            :animated="false"
-            :strokeWidth="0"
-            :shadow="false"
-            textShadow=""
-            class="section-title">
-            LISTE DES SITEMAPS
-          </GradientText>
           <div class="table" ref="tableEl">
             <div class="card-list">
-              <div v-for="(item, idx) in sitemaps" :key="idx" class="sitemap-card">
+              <GlassSurface v-for="(item, idx) in sitemaps" :key="idx" rootClass="sitemap-card premium-glass">
                 <div class="card-left">
-                  <div class="avatar"></div>
                   <div class="site-info">
                     <div class="site-topline">
                       <span class="site-name">
@@ -99,7 +61,7 @@
                     </svg>
                   </button>
                 </div>
-              </div>
+              </GlassSurface>
 
               <div v-if="sitemaps.length === 0" class="empty-state">Aucun sitemap ajouté</div>
             </div>
@@ -115,12 +77,15 @@
   import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
   import { useRouter } from 'vue-router'
   import axios from 'axios'
-  import GradientText from '../components/GradientText.vue'
   import StarsBackground from '../components/StarsBackground.vue'
   import ColorBendsBackground from '../components/ColorBendsBackground.vue'
+  import GlassSurface from '../components/vendor/GlassSurface.vue'
+  import GlassGenerateButton from '../components/GlassGenerateButton.vue'
   
   
-  const API_URL = (import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_URL) || '/api'
+  const API_URL = (['localhost','127.0.0.1'].includes(window.location.hostname)
+    ? '/api'
+    : ((import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_URL) || '/api'))
   
   const url = ref('')
   const sitemaps = ref([])
@@ -228,7 +193,7 @@
     
     try {
       const normalized = normalizeUrl(url.value)
-      await axios.post(`${API_URL}/sitemaps`, { url: normalized })
+      await axios.post(`${API_URL}/sitemaps?url=${encodeURIComponent(normalized)}`)
       await loadSitemaps()
       await loadSummaries()
       url.value = ''
@@ -337,7 +302,7 @@
     margin-bottom: 2rem;
     font-weight: 700;
     letter-spacing: 0.2px;
-    color: #8b5cf6;
+    color: #0f172a;
   }
 
   /* Reusable green→violet gradient text */
@@ -360,7 +325,7 @@
   
   .section-title {
     font-size: 1.2rem;
-    color: #8b5cf6;
+    color: #334155;
     margin-bottom: 1rem;
   }
   
@@ -372,10 +337,13 @@
   
   .input {
     color: #0f172a;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    padding: 10px 14px;
-    background: #ffffff;
+    border: 1px solid rgba(148,163,184,0.35);
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.52));
+    backdrop-filter: saturate(180%) blur(16px);
+    -webkit-backdrop-filter: saturate(180%) blur(16px);
+    box-shadow: 0 6px 14px rgba(2,6,23,0.06), inset 0 1px 0 rgba(255,255,255,0.45);
     max-width: 260px;
   }
   
@@ -385,8 +353,8 @@
   
   .input:focus {
     outline: none;
-    border-color: #8b5cf6;
-    box-shadow: 0 0 0 3px rgba(139,92,246,0.25);
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 4px var(--accent-ring);
   }
   
   .input:disabled {
@@ -396,23 +364,26 @@
   
   .btn-add {
     font-size: 15px;
-    padding: 0.6em 1.2em;
+    padding: 0.7em 1.2em;
     letter-spacing: 0.02em;
     position: relative;
     font-family: inherit;
-    border-radius: 8px;
-    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 12px;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     line-height: 1.4em;
-    border: 1px solid #1BFD9C;
-    background: #ffffff;
-    color: #1BFD9C;
-    box-shadow: none;
+    border: 1px solid var(--accent-border);
+    background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.48));
+    color: var(--accent);
+    backdrop-filter: saturate(180%) blur(14px);
+    -webkit-backdrop-filter: saturate(180%) blur(14px);
+    box-shadow: 0 10px 22px rgba(2,6,23,0.12), inset 0 1px 0 rgba(255,255,255,0.3);
   }
   
   .btn-add:not(:disabled):hover {
-    background: #ecfdf5;
-    color: #1BFD9C;
-    box-shadow: none;
+    background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.55));
+    color: var(--accent);
+    border-color: var(--accent-border);
+    box-shadow: 0 10px 22px rgba(2,6,23,0.12);
   }
   
   .btn-add:disabled {
@@ -432,27 +403,26 @@
   .table::before, .table::after { content: none; }
 
   /* Card list */
+
   .card-list { display: grid; gap: 12px; }
-  .sitemap-card {
+  .sitemap-card { padding: 0; border-radius: 16px; }
+  .sitemap-card .glass-surface__content {
     display: grid;
     grid-template-columns: 1.7fr 1.1fr auto;
     align-items: center;
     gap: 16px;
     padding: 16px 18px;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
   }
+  .sitemap-card .metric-label { color: #cbd5e1; }
+  .sitemap-card .metric-value { color: #e5e7eb; }
+  .sitemap-card .site-meta { color: #cbd5e1; }
+  .sitemap-card .site-name { color: #e5e7eb; }
   .sitemap-card:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 24px rgba(2,6,23,0.08);
-    border-color: rgba(139,92,246,0.25);
+    box-shadow: none;
   }
 
-  .card-left { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
-  .avatar { width: 40px; height: 40px; border-radius: 10px; background: #8b5cf6; flex-shrink: 0; }
+  .card-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .site-info { min-width: 0; }
   .site-topline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .site-meta { display: flex; flex-wrap: wrap; gap: 8px; color: #475569; font-size: 0.9rem; margin-top: 4px; }
@@ -469,37 +439,36 @@
   
   /* Base style for action buttons (Voir, Recharger) matching delete icon */
   .action-btn {
-    background-color: #ffffff;
-    border: 1px solid #8b5cf6;
-    color: #8b5cf6;
+    background: rgba(255,255,255,0.10);
+    border: 1px solid var(--accent-border);
+    color: var(--accent);
     padding: 0.5rem 0.9rem;
-    border-radius: 6px;
+    border-radius: 10px;
     cursor: pointer;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
 
-  .action-btn:hover {
-    background-color: rgba(139,92,246,0.08);
-  }
+  .action-btn:hover { background: rgba(255,255,255,0.14); border-color: var(--accent-border); }
   
   .delete-btn {
     width: 36px;
     height: 36px;
-    border-radius: 8px;
-    background-color: #ffffff;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.10);
     border: 1px solid #ef4444;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     transition: background-color 0.2s ease, border-color 0.2s ease;
     padding: 0;
   }
   
-  .delete-btn:hover {
-    background-color: #fee2e2;
-    border-color: #ef4444;
-  }
+  .delete-btn:hover { background: rgba(255,255,255,0.14); border-color: #ef4444; }
   
   .svgIcon {
     width: 16px;

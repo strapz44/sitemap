@@ -1,6 +1,5 @@
 <template>
   <div class="page-container">
-    <h1 class="title">Dashboard</h1>
     <p class="desc">Vue d'ensemble. Contenu à venir.</p>
   </div>
 </template>

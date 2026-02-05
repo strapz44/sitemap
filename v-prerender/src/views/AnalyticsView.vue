@@ -1,6 +1,5 @@
 <template>
   <div class="page-container">
-    <h1 class="title">Analytics</h1>
     <p class="desc">Section analytics. Contenu à venir.</p>
   </div>
 </template>

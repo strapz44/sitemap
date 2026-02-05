@@ -2,7 +2,7 @@
   <div class="sitemap-list">
     <div v-for="(item, index) in sitemaps" :key="index" class="sitemap-item">
       <div class="item-content">
-        <h3>{{ item.siteName }}</h3>
+        <p>{{ item.siteName }}</p>
         <p>{{ item.url }}</p>
       </div>
 

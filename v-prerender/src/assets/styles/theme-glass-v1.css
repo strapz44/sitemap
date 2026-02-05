@@ -1,5 +1,5 @@
 :root {
-  --accent: #0A84FF;
+  --accent: var(--figma-accent, #0A84FF);
   --accent-hover-bg: rgba(10,132,255,0.10);
   --accent-border: rgba(10,132,255,0.50);
   --accent-ring: rgba(10,132,255,0.18);
@@ -14,4 +14,83 @@
   --accent-hover-bg: rgba(139,92,246,0.10);
   --accent-border: rgba(139,92,246,0.50);
   --accent-ring: rgba(139,92,246,0.18);
+}
+
+/* Reusable glass surface helpers (legacy styles removed to avoid conflict with React Bits) */
+.premium-glass.glass-surface { color-scheme: dark; }
+
+.glass-chip {
+  background: rgba(255,255,255,0.6);
+  border: 1px solid var(--surface-border);
+  border-radius: 999px;
+  backdrop-filter: saturate(160%) blur(10px);
+  -webkit-backdrop-filter: saturate(160%) blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+}
+
+.rb-glass {
+  background: linear-gradient(180deg, rgba(18,18,22,0.82), rgba(18,18,22,0.60));
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: var(--radius);
+  backdrop-filter: saturate(230%) blur(20px);
+  -webkit-backdrop-filter: saturate(230%) blur(20px);
+  box-shadow: 0 28px 60px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.20), inset 0 -1px 0 rgba(0,0,0,0.26);
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
+}
+
+.rb-glass--sheen::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: calc(var(--radius) - 1px);
+  background: linear-gradient(135deg,
+    rgba(255,255,255,0.55) 0%,
+    rgba(255,255,255,0.22) 35%,
+    rgba(255,255,255,0.10) 55%,
+    rgba(255,255,255,0.0) 75%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  background-size: 260% 100%;
+  animation: rbSheen 7.5s ease-in-out infinite;
+}
+
+.rb-glass--caustics::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(120% 60% at 20% 40%, rgba(139,92,246,0.28), transparent 60%),
+              radial-gradient(120% 60% at 80% 60%, rgba(10,132,255,0.24), transparent 60%);
+  mix-blend-mode: screen;
+  filter: blur(16px) saturate(170%);
+  pointer-events: none;
+  background-size: 250% 120%;
+  animation: rbFlow 18s ease-in-out infinite;
+  will-change: background-position;
+}
+
+@keyframes rbSheen {
+  0% { background-position: -120% 0; }
+  50% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+
+@keyframes rbFlow {
+  0% { background-position: 0% 0; }
+  50% { background-position: 100% 0; }
+  100% { background-position: 0% 0; }
+}
+
+@keyframes sheen-slide {
+  0% { background-position: -120% 0; }
+  50% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+
+@keyframes texture-flow {
+  0% { background-position: 0% 0; }
+  50% { background-position: 100% 0; }
+  100% { background-position: 0% 0; }
 }
