@@ -23,3 +23,8 @@ pnpm-debug.log*
 *.sw?
 
 .vercel
+.env*.local
+!.env.example
+.env
+.env.*
+!.env.example

@@ -11,4 +11,4 @@
   status = 200
 
 [context.production.environment]
-  VUE_APP_API_URL = "https://api.prerender.windsurf.dev"
+  VUE_APP_API_URL = "/api"
