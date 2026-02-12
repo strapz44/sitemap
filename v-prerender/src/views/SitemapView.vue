@@ -1,14 +1,5 @@
 <template>
     <div class="app-wrapper">
-      <StarsBackground v-if="false" :density="0.75" :twinkle="0.22" :driftSpeed="0.03" />
-      <ColorBendsBackground
-        v-if="false"
-        :animated="false"
-        :performanceMode="perfMode"
-        :speed="0.06"
-        :intensity="0.42"
-        :colors="['#8b5cf6', '#1BFD9C', '#4079ff']"
-      />
       <div class="page-container">
         
         <div class="input-group">
@@ -20,7 +11,7 @@
             v-model="url"
             :disabled="isLoading"
           />
-          <GlassGenerateButton :disabled="isLoading" size="1.1rem" @click="addSitemap">Ajouter</GlassGenerateButton>
+          <GlassGenerateButton class="btn-add-legacy" :disabled="isLoading" size="1.0rem" @click="addSitemap">Ajouter</GlassGenerateButton>
         </div>
         <div v-if="error" class="error-message">{{ error }}</div>
   
@@ -75,10 +66,9 @@
 
   <script setup>
   import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+  import gsap from 'gsap'
   import { useRouter } from 'vue-router'
   import axios from 'axios'
-  import StarsBackground from '../components/StarsBackground.vue'
-  import ColorBendsBackground from '../components/ColorBendsBackground.vue'
   import GlassSurface from '../components/vendor/GlassSurface.vue'
   import GlassGenerateButton from '../components/GlassGenerateButton.vue'
   
@@ -86,6 +76,7 @@
   const API_URL = (['localhost','127.0.0.1'].includes(window.location.hostname)
     ? '/api'
     : ((import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_URL) || '/api'))
+  const API_BASE = ref(API_URL)
   
   const url = ref('')
   const sitemaps = ref([])
@@ -93,7 +84,6 @@
   const isLoading = ref(false)
   const router = useRouter()
   const summaryBySite = ref({})
-  const perfMode = ref(false)
 
   // Star-border responsive sizing
   const tableEl = ref(null)
@@ -138,16 +128,15 @@
 
   function normalizeUrl(u) {
     const raw = (u || '').trim()
-    if (!raw) return ''
+    const clean = raw.replace(/\s+/g, '')
+    if (!clean) return ''
     // If protocol missing, default to https
-    if (!/^https?:\/\//i.test(raw)) {
-      return `https://${raw}`
-    }
-    return raw
+    return /^https?:\/\//i.test(clean) ? clean : `https://${clean}`
   }
   
   // Charger les sitemaps au démarrage
   onMounted(async () => {
+    try { await axios.get(`${API_BASE.value}/health`, { timeout: 1500 }) } catch (e) { API_BASE.value = 'https://v-prerender.vercel.app/api' }
     await loadSitemaps()
     await loadSummaries()
   })
@@ -155,8 +144,15 @@
   // Charger tous les sitemaps
   async function loadSitemaps() {
     try {
-      const response = await axios.get(`${API_URL}/sitemaps`)
+      const response = await axios.get(`${API_BASE.value}/sitemaps`)
       sitemaps.value = response.data
+      await nextTick()
+      try {
+        const nodes = Array.from(document.querySelectorAll('.sitemap-card .glass-surface__content'))
+        if (nodes.length) {
+          gsap.from(nodes, { opacity: 0, y: 8, duration: 0.35, stagger: 0.05, ease: 'power2.out' })
+        }
+      } catch (e) { /* no-op */ }
     } catch (err) {
       const status = err?.response?.status
       const detail = err?.response?.data?.error || err?.message
@@ -171,7 +167,7 @@
         (sitemaps.value || []).map(async (it) => {
           const site = it.siteName
           try {
-            const { data } = await axios.get(`${API_URL}/sitemaps/${encodeURIComponent(site)}/summary`)
+            const { data } = await axios.get(`${API_BASE.value}/sitemaps/${encodeURIComponent(site)}/summary`)
             return [site, data]
           } catch (e) {
             return [site, null]
@@ -193,7 +189,7 @@
     
     try {
       const normalized = normalizeUrl(url.value)
-      await axios.post(`${API_URL}/sitemaps?url=${encodeURIComponent(normalized)}`)
+      await axios.post(`${API_BASE.value}/sitemaps?url=${encodeURIComponent(normalized)}`)
       await loadSitemaps()
       await loadSummaries()
       url.value = ''
@@ -209,7 +205,7 @@
   // Rafraîchir un sitemap
   async function refreshSitemap(siteName) {
     try {
-      await axios.post(`${API_URL}/sitemaps/${encodeURIComponent(siteName)}/refresh`)
+      await axios.post(`${API_BASE.value}/sitemaps/${encodeURIComponent(siteName)}/refresh`)
       await loadSitemaps()
       await loadSummaries()
     } catch (err) {
@@ -222,7 +218,7 @@
     if (!confirm(`Voulez-vous vraiment supprimer le sitemap pour ${siteName} ?`)) return
     
     try {
-      await axios.delete(`${API_URL}/sitemaps/${encodeURIComponent(siteName)}`)
+      await axios.delete(`${API_BASE.value}/sitemaps/${encodeURIComponent(siteName)}`)
       await loadSitemaps()
       await loadSummaries()
     } catch (err) {
@@ -278,7 +274,10 @@
   
   <style scoped>
   .app-wrapper {
-    background-color: #f8fafc; /* light neutral */
+    background:
+      radial-gradient(60% 80% at 18% 18%, rgba(139, 92, 246, 0.35) 0%, transparent 60%),
+      radial-gradient(50% 70% at 82% 28%, rgba(56, 189, 248, 0.25) 0%, transparent 60%),
+      linear-gradient(180deg, #0b1020 0%, #0a0f1a 100%);
     min-height: 100vh;
     font-family: Arial, sans-serif;
     position: relative;
@@ -333,19 +332,22 @@
     display: flex;
     gap: 1rem;
     margin-bottom: 2rem;
+    align-items: center;
   }
   
   .input {
-    color: #0f172a;
-    border: 1px solid rgba(148,163,184,0.35);
+    color: #e5e7eb;
+    border: 1px solid rgba(148,163,184,0.26);
     border-radius: 14px;
-    padding: 12px 14px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(255,255,255,0.52));
-    backdrop-filter: saturate(180%) blur(16px);
-    -webkit-backdrop-filter: saturate(180%) blur(16px);
-    box-shadow: 0 6px 14px rgba(2,6,23,0.06), inset 0 1px 0 rgba(255,255,255,0.45);
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
     max-width: 260px;
+    height: 44px;
   }
+  .input::placeholder { color: #94a3b8; }
   
   .input:active {
     box-shadow: none;
@@ -353,8 +355,8 @@
   
   .input:focus {
     outline: none;
-    border-color: var(--accent-border);
-    box-shadow: 0 0 0 4px var(--accent-ring);
+    border-color: rgba(139,92,246,0.5);
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.25);
   }
   
   .input:disabled {
@@ -364,27 +366,23 @@
   
   .btn-add {
     font-size: 15px;
-    padding: 0.7em 1.2em;
+    padding: 12px 16px;
     letter-spacing: 0.02em;
     position: relative;
     font-family: inherit;
     border-radius: 12px;
     transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    line-height: 1.4em;
-    border: 1px solid var(--accent-border);
-    background: linear-gradient(180deg, rgba(255,255,255,0.78), rgba(255,255,255,0.48));
-    color: var(--accent);
-    backdrop-filter: saturate(180%) blur(14px);
-    -webkit-backdrop-filter: saturate(180%) blur(14px);
-    box-shadow: 0 10px 22px rgba(2,6,23,0.12), inset 0 1px 0 rgba(255,255,255,0.3);
+    line-height: 20px;
+    border: 1px solid rgba(148,163,184,0.26);
+    background: rgba(255,255,255,0.08);
+    color: #e5e7eb;
+    backdrop-filter: saturate(160%) blur(14px);
+    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+    height: 44px;
   }
   
-  .btn-add:not(:disabled):hover {
-    background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.55));
-    color: var(--accent);
-    border-color: var(--accent-border);
-    box-shadow: 0 10px 22px rgba(2,6,23,0.12);
-  }
+  .btn-add:not(:disabled):hover { background: rgba(255,255,255,0.14); color: #fff; border-color: var(--accent-border); }
   
   .btn-add:disabled {
     opacity: 0.7;
@@ -404,19 +402,26 @@
 
   /* Card list */
 
-  .card-list { display: grid; gap: 12px; }
+  .sitemap-list { display: flex; justify-content: center; }
+  .card-list { display: grid; gap: 12px; width: min(860px, 100%); }
   .sitemap-card { padding: 0; border-radius: 16px; }
-  .sitemap-card .glass-surface__content {
+  :deep(.sitemap-card:not(.premium-glass).glass-surface--svg),
+  :deep(.sitemap-card:not(.premium-glass).glass-surface--fallback) {
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(148,163,184,0.35);
+    box-shadow: 0 14px 30px rgba(2,6,23,0.12), inset 0 1px 0 rgba(255,255,255,0.35);
+  }
+  :deep(.sitemap-card .glass-surface__content) {
     display: grid;
     grid-template-columns: 1.7fr 1.1fr auto;
     align-items: center;
     gap: 16px;
     padding: 16px 18px;
   }
-  .sitemap-card .metric-label { color: #cbd5e1; }
+  .sitemap-card .metric-label { color: #94a3b8; }
   .sitemap-card .metric-value { color: #e5e7eb; }
   .sitemap-card .site-meta { color: #cbd5e1; }
-  .sitemap-card .site-name { color: #e5e7eb; }
+  .sitemap-card .site-name { color: #f8fafc; }
   .sitemap-card:hover {
     transform: translateY(-3px);
     box-shadow: none;
@@ -439,9 +444,9 @@
   
   /* Base style for action buttons (Voir, Recharger) matching delete icon */
   .action-btn {
-    background: rgba(255,255,255,0.10);
-    border: 1px solid var(--accent-border);
-    color: var(--accent);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(148,163,184,0.26);
+    color: #e5e7eb;
     padding: 0.5rem 0.9rem;
     border-radius: 10px;
     cursor: pointer;
@@ -450,13 +455,13 @@
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
 
-  .action-btn:hover { background: rgba(255,255,255,0.14); border-color: var(--accent-border); }
+  .action-btn:hover { background: rgba(255,255,255,0.14); border-color: var(--accent-border); color: #fff; }
   
   .delete-btn {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.08);
     border: 1px solid #ef4444;
     display: flex;
     align-items: center;
@@ -530,4 +535,9 @@
     color: #8b5cf6; /* brand violet */
     font-weight: 600;
   }
+
+  /* Adapter le bouton GlassGenerateButton à 44px ici */
+  :deep(.btn-add-legacy.btn-wrapper) { font-size: 1rem; }
+  :deep(.btn-add-legacy .button) { height: 44px; display: inline-flex; align-items: center; }
+  :deep(.btn-add-legacy .span) { padding-inline: 18px; }
 </style>

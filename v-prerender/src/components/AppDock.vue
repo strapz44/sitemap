@@ -2,21 +2,21 @@
   <nav class="dock" role="navigation" aria-label="Dock">
     <GlassSurface
       rootClass="dock-list premium-glass"
-      :borderRadius="24"
+      :borderRadius="16"
       :borderWidth="0.07"
       :brightness="50"
-      :opacity="0.93"
-      :blur="11"
+      :opacity="0.9"
+      :blur="8"
       :displace="0.5"
       :backgroundOpacity="0.2"
       :saturation="1"
-      :distortionScale="-180"
+      :distortionScale="-60"
       :redOffset="0"
       :greenOffset="10"
       :blueOffset="20"
       xChannel="R"
       yChannel="G"
-      mixBlendMode="difference"
+      mixBlendMode="normal"
     >
     <ul class="dock-items" @mouseleave="hoverIdx = -1">
       <li v-for="(it, i) in items" :key="it.name" class="dock-item">
@@ -88,18 +88,7 @@ const items = [
   z-index: 40;
 }
 .dock::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: 640px;
-  height: 260px;
-  border-radius: 9999px;
-  background: radial-gradient(60% 100% at 50% 12%, rgba(8,10,14,0.70) 0%, rgba(8,10,14,0.34) 42%, rgba(8,10,14,0) 78%);
-  filter: blur(20px);
-  pointer-events: none;
-  z-index: 0;
+  content: none;
 }
 .dock-list {
   display: flex;
@@ -110,6 +99,12 @@ const items = [
   overflow: hidden;
 }
 .dock-list.glass-surface { position: relative; z-index: 1; }
+.dock-list:not(.premium-glass).glass-surface--svg,
+.dock-list:not(.premium-glass).glass-surface--fallback {
+  background: rgba(255,255,255,0.78);
+  border: 1px solid rgba(148,163,184,0.35);
+  box-shadow: 0 16px 36px rgba(2,6,23,0.12), inset 0 1px 0 rgba(255,255,255,0.35);
+}
 .dock-list:not(.glass-surface)::before {
   content: '';
   position: absolute;

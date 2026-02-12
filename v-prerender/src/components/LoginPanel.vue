@@ -4,9 +4,6 @@
       <div class="panel-header">
         <button class="close-btn" @click="emitClose">×</button>
       </div>
-      <div class="menu-wrap">
-        <StaggeredMenu :open="ready" :items="['Se connecter','Projets','Sitemaps','Rapports','Paramètres','Aide']" />
-      </div>
       <form class="form" @submit.prevent="onSubmit">
         <label class="label stagger-item" style="--i: 0">EMAIL</label>
         <input class="input stagger-item" style="--i: 1" type="email" v-model.trim="email" placeholder="Entrer votre email" required />
@@ -33,7 +30,6 @@
 <script setup>
 import { ref, watch, nextTick } from 'vue'
 import axios from 'axios'
-import StaggeredMenu from './StaggeredMenu.vue'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -108,5 +104,5 @@ async function onSubmit(){
 .actions { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: #6b7280; }
 .link { color: var(--accent); text-decoration: none; }
 .sep { flex: 1 1 auto; height: 1px; background: rgba(0,0,0,0.06); }
-.menu-wrap { margin-bottom: 12px; }
+
 </style>

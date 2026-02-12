@@ -11,21 +11,22 @@ const port = Number(process.env.PORT) || 3000;
 
 const corsOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
-  .map(s => s.trim())
+  .map(s => s.trim().toLowerCase())
   .filter(Boolean);
-const allowAll = corsOrigins.length === 0;
+const allowAll = corsOrigins.includes('*');
+const allowPatterns = [/^https:\/\/.*\.vercel\.app$/i];
+const privateDevPattern = /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\]|10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})(?::\d+)?$/i;
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (allowAll) return callback(null, true);
     const o = String(origin).toLowerCase();
-    if (o.startsWith('http://localhost:') || o.startsWith('http://127.0.0.1:')) return callback(null, true);
+    if (privateDevPattern.test(o)) return callback(null, true);
     if (corsOrigins.includes(o)) return callback(null, true);
+    if (allowPatterns.some(rx => rx.test(origin))) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
   },
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: false,
+  credentials: true,
 }));
 app.use(express.json());
 
@@ -35,6 +36,9 @@ app.use('/api/sitemaps', sitemapController);
 // Healthcheck
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok' });
+});
+app.get('/healthz', (_req: Request, res: Response) => {
+  res.status(200).send('ok');
 });
 
 app.get('/api/sitemap/:website', async (req, res) => {
@@ -79,9 +83,6 @@ app.get('/sitemap/:website', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`✅ Serveur démarré sur http://localhost:${port}`);
-
-
-
+app.listen(port, '0.0.0.0', () => {
+  console.log(`✅ Serveur démarré sur 0.0.0.0:${port}`);
 });

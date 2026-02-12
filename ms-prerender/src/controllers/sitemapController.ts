@@ -82,14 +82,44 @@ class Ctrl {
         return;
       }
 
-      // Récupérer et parser le sitemap
-      const sitemap = await SitemapService.getSitemapFromUrl(url);
-      
+      // Génère des variantes avec et sans www pour améliorer la découverte
+      const ensureUrl = (input: string) => {
+        try { return /^https?:\/\//i.test(input) ? new URL(input) : new URL(`https://${input}`); }
+        catch { return new URL(`https://${input}`); }
+      };
+      const base = ensureUrl(String(url).trim());
+      const host = base.host;
+      const withWww = host.startsWith('www.') ? host : `www.${host}`;
+      const withoutWww = host.replace(/^www\./, '');
+      const proto = base.protocol;
+      const variants = Array.from(new Set<string>([
+        `${proto}//${host}`,
+        `${proto}//${withWww}`,
+        `${proto}//${withoutWww}`,
+      ]));
+
+      // Tente chaque variante jusqu'au succès
+      let sitemap: any | null = null;
+      let used: string | null = null;
+      for (const v of variants) {
+        try {
+          sitemap = await SitemapService.getSitemapFromUrl(v);
+          used = v;
+          break;
+        } catch (e) {
+          /* try next */
+        }
+      }
+
+      if (!sitemap) {
+        throw new Error('Sitemap not found');
+      }
+
       // Sauvegarder dans la base de données
       await SitemapDao.create({
         siteName: url,
         fetchedAt: new Date().toISOString(),
-        urls: sitemap.urlset.url.map(u => ({
+        urls: sitemap.urlset.url.map((u: any) => ({
           loc: u.loc[0],
           priority: u.priority?.[0],
           lastmod: u.lastmod?.[0],

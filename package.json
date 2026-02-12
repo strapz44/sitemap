@@ -2,15 +2,22 @@
   "name": "prerender-monorepo",
   "private": true,
   "version": "1.0.0",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:manager\"",
     "dev:frontend": "npm --prefix v-prerender run serve",
     "dev:backend": "npm --prefix ms-prerender run dev",
     "dev:manager": "npm --prefix ms-prerender-manager run dev",
     "build": "npm --prefix v-prerender run build && npm --prefix ms-prerender run build",
+    "vercel-build": "npm --prefix v-prerender install && npm --prefix v-prerender run build",
     "start:backend": "npm --prefix ms-prerender run start"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
   }
 }

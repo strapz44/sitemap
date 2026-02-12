@@ -1,21 +1,21 @@
 <template>
 <nav class="navbar">
   <GlassSurface
-    :borderRadius="30"
+    :borderRadius="24"
     :borderWidth="0.07"
     :brightness="50"
-    :opacity="0.93"
-    :blur="11"
+    :opacity="0.9"
+    :blur="8"
     :displace="0.5"
     :backgroundOpacity="0.2"
     :saturation="1"
-    :distortionScale="-180"
+    :distortionScale="-60"
     :redOffset="0"
     :greenOffset="10"
     :blueOffset="20"
     xChannel="R"
     yChannel="G"
-    mixBlendMode="difference"
+    mixBlendMode="normal"
     rootClass="card-nav premium-glass"
   >
   <div class="nav-container">
@@ -26,7 +26,7 @@
       <span class="indicator" ref="indicatorRef"></span>
     </div>
     <div class="right-actions">
-      <button class="login-btn" @click="emit('open-login')">Connexion</button>
+      <button class="login-btn" @click="go('login')">Connexion</button>
       <button class="menu-btn" :aria-expanded="isOpen.toString()" aria-label="Ouvrir le menu" @click="toggle">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
           <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -46,11 +46,11 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick, watch, computed } from 'vue'
+import gsap from 'gsap'
 import { useRoute, useRouter } from 'vue-router'
 import GlassSurface from './vendor/GlassSurface.vue'
 const route = useRoute()
 const router = useRouter()
-const emit = defineEmits(['open-login'])
 const isOpen = ref(false)
 function toggle(){ isOpen.value = !isOpen.value }
 const linksEl = ref(null)
@@ -67,9 +67,7 @@ function positionIndicator(el){
   const r = el.getBoundingClientRect()
   const pr = c.getBoundingClientRect()
   const left = r.left - pr.left
-  i.style.width = r.width + 'px'
-  i.style.transform = `translateX(${left}px)`
-  i.style.opacity = '1'
+  gsap.to(i, { duration: 0.25, width: r.width, x: left, opacity: 1, ease: 'power2.out' })
 }
 function updateActiveByRoute(){
   let el = null
@@ -98,17 +96,23 @@ onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
   z-index: 50;
   font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   letter-spacing: 0.2px;
-  height: 80px;
+  height: 48px;
 }
 
 .navbar::before {
   content: '';
   position: absolute;
-  left: 0; right: 0; top: 0;
-  height: 84px;
-  background: radial-gradient(120% 180% at 50% 0%, rgba(8,10,14,0.86), rgba(8,10,14,0.52));
+  inset: -40px -20px;
+  border-radius: 999px;
+  background:
+    radial-gradient(38% 42% at 18% 48%, rgba(139, 92, 246, 0.55) 0%, rgba(139, 92, 246, 0.18) 40%, transparent 70%),
+    radial-gradient(40% 38% at 62% 52%, rgba(56, 189, 248, 0.50) 0%, rgba(56, 189, 248, 0.16) 42%, transparent 70%),
+    radial-gradient(26% 30% at 84% 46%, rgba(236, 72, 153, 0.40) 0%, rgba(236, 72, 153, 0.10) 45%, transparent 70%);
+  filter: blur(36px) saturate(1.15);
+  opacity: 0.85;
   pointer-events: none;
   z-index: 0;
+  animation: aurora-shift 22s ease-in-out infinite alternate;
 }
 
 .nav-container {
@@ -118,16 +122,17 @@ onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 1rem;
-  height: 64px;
+  height: 48px;
 }
 
 .card-nav {
-  --radius: 30px;
-  border-radius: 30px;
-  padding: 0.7rem 1rem;
+  --radius: 16px;
+  border-radius: 16px;
+  padding: 0.4rem 0.6rem;
   position: relative;
   overflow: visible;
 }
+.card-nav { width: clamp(560px, 68vw, 820px); margin: 0 auto; display: block; }
 .card-nav { position: relative; z-index: 1; }
 .card-nav:not(.glass-surface) {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.42));
@@ -136,11 +141,11 @@ onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
   border: 1px solid rgba(148, 163, 184, 0.35);
   box-shadow: 0 16px 36px rgba(2, 6, 23, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
-:deep(.card-nav.glass-surface) { overflow: hidden; color-scheme: dark; }
+:deep(.card-nav.glass-surface) { overflow: hidden; color-scheme: light; }
 .nav-link { color: #e5e7eb; }
 .nav-link.active, .nav-link:hover { color: #ffffff; }
-:deep(.card-nav.glass-surface) { height: 60px; min-height: 60px; }
-.card-nav :deep(.glass-surface__content) { display: grid; align-items: center; padding: 0.7rem 1rem; border-radius: inherit; height: 60px; min-height: 60px; }
+:deep(.card-nav.glass-surface) { height: 48px; min-height: 48px; }
+.card-nav :deep(.glass-surface__content) { display: grid; align-items: center; padding: 0.4rem 0.6rem; border-radius: inherit; height: 48px; min-height: 48px; }
 
 .card-nav:not(.glass-surface)::before { 
   content: '';
@@ -174,6 +179,12 @@ onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
   100% { background-position: 0% 0; }
 }
 
+@keyframes aurora-shift {
+  0% { transform: translate3d(-2%, -1%, 0) scale(1.02); }
+  50% { transform: translate3d(2%, 2%, 0) scale(1.03); }
+  100% { transform: translate3d(-1%, 1%, 0) scale(1.02); }
+}
+
 .nav-link {
   color: #64748b;
   text-decoration: none;
@@ -198,7 +209,7 @@ onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
 .nav-link.tab { border-radius: 6px; padding-bottom: 0.35rem; }
 .nav-link.tab.active { color: var(--accent); }
 .links { display: flex; gap: 1rem; align-items: center; justify-self: center; position: relative; }
-.indicator { position: absolute; left: 0; bottom: -4px; height: 2px; width: 0; background: var(--accent); border-radius: 999px; opacity: 0; transition: transform .18s ease, width .18s ease, opacity .18s ease; }
+.indicator { position: absolute; left: 0; bottom: -4px; height: 2px; width: 0; background: var(--accent); border-radius: 999px; opacity: 0; will-change: transform, width, opacity; }
 
 .menu-btn {
   justify-self: end;

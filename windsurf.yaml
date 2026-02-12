@@ -1,7 +1,0 @@
-name: prerender
-type: web
-framework: vue
-root: v-prerender
-build:
-  command: npm run build
-  output: dist

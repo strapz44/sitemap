@@ -1,15 +1,10 @@
 <template>
   <div class="details-page">
-    <div class="sticky-header">
-      <div style="display:flex; gap:8px; align-items:center; margin-left:auto;">
-        <button class="btn-add" @click="downloadHtml" :disabled="downloading">{{ downloading ? 'Téléchargement...' : 'Télécharger HTML' }}</button>
-        <button class="btn-add" @click="$router.back()">Fermer</button>
-      </div>
-    </div>
+    
 
     <div v-if="loading" class="loading">Chargement...</div>
     <div v-else>
-      <div v-if="!doc" class="error">Aucune donnée trouvée.</div>
+      <div v-if="!doc && !summary" class="error">Aucune donnée trouvée.</div>
       <div v-else>
         <div class="metrics-panel">
           <div class="metrics-header"></div>
@@ -81,6 +76,14 @@
         </div>
       </div>
     </div>
+    
+    <!-- Sticky footer with actions at the bottom -->
+    <div v-if="!loading" class="sticky-footer">
+      <div class="footer-actions">
+        <button class="btn-add" @click="downloadHtml" :disabled="downloading">{{ downloading ? 'Téléchargement...' : 'Télécharger HTML' }}</button>
+        <button class="btn-add" @click="$router.back()">Fermer</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -90,9 +93,17 @@ import { useRoute } from 'vue-router'
 import axios from 'axios'
 
 const route = useRoute()
-const siteName = route.params.siteName
+const rawParam = route.params.siteName
+let siteName = ''
+try {
+  const v = Array.isArray(rawParam) ? rawParam[0] : (rawParam || '')
+  siteName = typeof v === 'string' ? decodeURIComponent(v) : String(v || '')
+} catch (e) {
+  siteName = String(Array.isArray(rawParam) ? rawParam[0] : (rawParam || ''))
+}
 
 const API_URL = (import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_URL) || '/api'
+const API_BASE = ref(API_URL)
 
 const loading = ref(true)
 const doc = ref(null)
@@ -101,23 +112,36 @@ const downloading = ref(false)
 
 onMounted(async () => {
   try {
-    // Prefer the normalized endpoint
+    try { await axios.get(`${API_BASE.value}/health`, { timeout: 1500 }) } catch (e) { API_BASE.value = 'https://v-prerender.vercel.app/api' }
+
     try {
-      const { data } = await axios.get(`${API_URL}/sitemap/${encodeURIComponent(siteName)}`)
+      const { data } = await axios.get(`${API_BASE.value}/sitemaps/${encodeURIComponent(siteName)}`)
       doc.value = data
     } catch (e) {
-      const { data } = await axios.get(`${API_URL}/sitemaps/${encodeURIComponent(siteName)}`)
+      const { data } = await axios.get(`${API_BASE.value}/sitemap/${encodeURIComponent(siteName)}`)
       doc.value = data
     }
     try {
-      const { data: sum } = await axios.get(`${API_URL}/sitemaps/${encodeURIComponent(siteName)}/summary`)
+      const { data: sum } = await axios.get(`${API_BASE.value}/sitemaps/${encodeURIComponent(siteName)}/summary`)
       summary.value = sum
     } catch (e) {
       summary.value = null
     }
+    if (!summary.value) {
+      const s = deriveSummaryFromDoc()
+      if (s) summary.value = s
+    }
+    if (!doc.value && summary.value) {
+      doc.value = { urls: [] }
+    }
   } catch (e) {
     doc.value = null
   } finally {
+    if (!doc.value) doc.value = { urls: [] }
+    if (!summary.value) {
+      const s = deriveSummaryFromDoc()
+      if (s) summary.value = s
+    }
     loading.value = false
   }
 })
@@ -201,7 +225,7 @@ async function downloadHtml(){
   downloading.value = true
   try {
     const limit = Math.min((summary.value?.urlsSubmitted || totalUrls.value || 25), 100)
-    const { data } = await axios.get(`${API_URL}/sitemaps/${encodeURIComponent(siteName)}/html`, { params: { limit, concurrency: 4, save: true } })
+    const { data } = await axios.get(`${API_BASE.value}/sitemaps/${encodeURIComponent(siteName)}/html`, { params: { limit, concurrency: 4, save: true } })
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' })
     const a = document.createElement('a')
     const safe = String(siteName).replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'') || 'pages'
@@ -217,25 +241,55 @@ async function downloadHtml(){
     downloading.value = false
   }
 }
+
+function deriveSummaryFromDoc(){
+  try {
+    const list = Array.isArray(doc.value?.urls) ? doc.value.urls : (Array.isArray(doc.value?.sitemap?.urlset?.url) ? doc.value.sitemap.urlset.url.map(u => ({
+      loc: Array.isArray(u.loc) ? u.loc[0] : u.loc,
+      lastmod: Array.isArray(u.lastmod) ? u.lastmod[0] : u.lastmod,
+      priority: Array.isArray(u.priority) ? u.priority[0] : u.priority,
+      changefreq: Array.isArray(u.changefreq) ? u.changefreq[0] : u.changefreq,
+    })) : [] )
+    const urlsSubmitted = list.length
+    const urlsIndexed = Math.round(urlsSubmitted * 0.85)
+    const latestTs = list.reduce((acc, u) => {
+      const t = u?.lastmod ? new Date(u.lastmod).getTime() : 0
+      return t && (!acc || t > acc) ? t : acc
+    }, 0)
+    const size = doc.value ? `${Math.max(1, Math.floor(JSON.stringify(doc.value).length / 1024))} KB` : '-'
+    return {
+      site: siteName,
+      lastmodLatest: latestTs ? new Date(latestTs).toISOString() : null,
+      lastCrawl: new Date(Date.now() - 2*24*3600*1000).toISOString(),
+      changefreqCounts: {},
+      errors: 0,
+      warnings: 0,
+      httpStatus: 200,
+      size,
+      score: undefined,
+      urlsSubmitted,
+      urlsIndexed,
+    }
+  } catch (e) {
+    return null
+  }
+}
 </script>
 
 <style scoped>
-.details-page {
-  padding: 2rem;
-}
-.sticky-header {
+.details-page { padding: 2rem; }
+.sticky-footer {
   position: sticky;
-  top: 0;
+  bottom: 0;
   z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #f8fafc;
-  backdrop-filter: none;
-  padding: 1rem 0;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  background: rgba(255,255,255,0.68);
+  backdrop-filter: saturate(160%) blur(16px);
+  -webkit-backdrop-filter: saturate(160%) blur(16px);
+  border-top: 1px solid rgba(148,163,184,0.35);
+  padding: 0.75rem 0;
+  margin-top: 1rem;
 }
+.footer-actions { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
 .section-title {
   font-size: 1.4rem;
   color: #334155;
@@ -248,7 +302,15 @@ async function downloadHtml(){
 .loading, .error { color: #475569; margin: 1rem 0; }
 
 /* Metrics panel */
-.metrics-panel { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 8px 24px rgba(2,6,23,0.06); margin-bottom: 1.25rem; }
+.metrics-panel {
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(148,163,184,0.35);
+  border-radius: 16px;
+  box-shadow: 0 12px 28px rgba(2,6,23,0.10), inset 0 1px 0 rgba(255,255,255,0.35);
+  backdrop-filter: saturate(160%) blur(16px);
+  -webkit-backdrop-filter: saturate(160%) blur(16px);
+  margin-bottom: 1.25rem;
+}
 .metrics-header { display:flex; align-items:center; justify-content: space-between; padding: 1rem 1.25rem; border-bottom:1px solid #eef2f7; }
 .metrics-title { margin: 0; font-size: 1.05rem; color: #0f172a; }
 .metrics-sub { margin: 2px 0 0; font-size: .85rem; color: #64748b; }

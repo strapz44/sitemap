@@ -6,17 +6,17 @@ import { Controller } from "@/controllers/Controller";
 export class SitemapController extends Controller {
 
   static async get() {
-    return this.requestBuilder("GET", `/sitemap`);
+    return this.requestBuilder("GET", `/sitemaps`);
   }
 
   static async post(url) {
     const encoded = encodeURIComponent(url);
-    return this.requestBuilder("POST", `/sitemap/${encoded}`);
+    return this.requestBuilder("POST", `/sitemaps?url=${encoded}`);
   }
 
   static async delete(url) {
     const encoded = encodeURIComponent(url);
-    return this.requestBuilder("DELETE", `/sitemap/${encoded}`);
+    return this.requestBuilder("DELETE", `/sitemaps/${encoded}`);
   }
 
 }

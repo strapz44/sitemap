@@ -1,8 +1,0 @@
-name: prerender-web
-type: vue
-build:
-  command: npm run build
-  output_dir: dist
-env:
-  VUE_APP_API_URL: https://api.prerender-sitemap.windsurf.dev
-  NODE_ENV: production

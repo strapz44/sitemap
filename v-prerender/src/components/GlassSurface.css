@@ -103,3 +103,95 @@
   outline: 2px solid light-dark(#007aff, #0a84ff);
   outline-offset: 2px;
 }
+
+/* Premium glassmorphism (Apple-inspired) ---------------------------------- */
+.premium-glass { position: relative; isolation: isolate; }
+.premium-glass.glass-surface--svg,
+.premium-glass.glass-surface--fallback {
+  background: rgba(17, 18, 23, 0.65) !important; /* deep neutral base to enhance bloom */
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.16),
+    inset 0 -1px 0 rgba(2,6,23,0.25),
+    0 8px 30px rgba(2,6,23,0.28),
+    0 2px 10px rgba(2,6,23,0.12);
+}
+
+/* Animated color bloom inside the glass */
+.premium-glass::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  border-radius: inherit;
+  background:
+    radial-gradient(60% 50% at 20% 45%, rgba(139, 92, 246, 0.60) 0%, rgba(139, 92, 246, 0.15) 42%, transparent 60%),
+    radial-gradient(50% 40% at 70% 55%, rgba(56, 189, 248, 0.50) 0%, rgba(56, 189, 248, 0.12) 40%, transparent 60%),
+    radial-gradient(40% 35% at 50% 50%, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+  filter: blur(26px) saturate(1.15);
+  mix-blend-mode: screen;
+  transform: translate3d(0,0,0);
+  animation: glass-bloom 26s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Moving sheen sweep */
+.premium-glass::after {
+  content: '';
+  position: absolute;
+  inset: -5%;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.18) 50%, transparent 80%);
+  filter: blur(12px);
+  mix-blend-mode: soft-light;
+  animation: sheen-move 7s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes glass-bloom {
+  0%   { transform: translate3d(-2%, -1%, 0) scale(1.02); opacity: 0.95; }
+  50%  { transform: translate3d(2%, 1%, 0) scale(1.04); opacity: 1; }
+  100% { transform: translate3d(-1%, 2%, 0) scale(1.03); opacity: 0.95; }
+}
+
+@keyframes sheen-move {
+  0% { transform: translateX(-45%); opacity: .45; }
+  50% { transform: translateX(45%); opacity: .65; }
+  100% { transform: translateX(-45%); opacity: .45; }
+}
+
+/* Subtle film grain */
+.premium-glass .glass-surface__content::before {
+  content: '';
+  position: absolute;
+  inset: 0; border-radius: inherit;
+  background-image:
+    radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+    radial-gradient(rgba(0,0,0,0.05) 1px, transparent 1px);
+  background-size: 3px 3px, 5px 5px;
+  background-position: 0 0, 1px 1px;
+  mix-blend-mode: overlay;
+  opacity: .55;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Bright glass overrides for navbar chip using premium effect */
+.card-nav.glass-surface { color-scheme: dark !important; }
+.card-nav.premium-glass.glass-surface--svg,
+.card-nav.premium-glass.glass-surface--fallback {
+  background: rgba(12, 14, 20, 0.70) !important;
+  border: 1px solid rgba(148, 163, 184, 0.28) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    inset 0 -1px 0 rgba(2,6,23,0.25),
+    0 8px 30px rgba(2,6,23,0.28),
+    0 2px 10px rgba(2,6,23,0.12) !important;
+}
+
+/* Navbar chip inner layout and link colors */
+.card-nav .glass-surface__content { padding: 0.35rem 0.6rem !important; }
+.card-nav .glass-surface__content .nav-link { color: #e5e7eb !important; }
+.card-nav .glass-surface__content .nav-link:hover,
+.card-nav .glass-surface__content .nav-link.active { color: #ffffff !important; }
