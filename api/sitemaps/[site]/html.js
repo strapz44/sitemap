@@ -1,28 +1,32 @@
+function setCors(req, res) {
+  try {
+    const origin = req.headers.origin || '*'
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Vary', 'Origin')
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  } catch {}
+}
+
+function baseOf(raw) {
+  const s = (raw || '').trim()
+  if (!s) return ''
+  const clean = s.replace(/\/$/, '')
+  return /^https?:\/\//i.test(clean) ? clean : `https://${clean}`
+}
+
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Cache-Control', 'no-store');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  const site = decodeURIComponent(req.query.site || 'example.com');
-  const limitRaw = req.query.limit || '25';
-  const concurrencyRaw = req.query.concurrency || '4';
-  const save = String(req.query.save) === 'true';
+  setCors(req, res)
+  if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end() }
 
-  const limit = Math.max(1, Math.min(parseInt(limitRaw, 10) || 25, 100));
-  const concurrency = Math.max(1, Math.min(parseInt(concurrencyRaw, 10) || 4, 16));
-
-  const base = site.startsWith('http') ? site.replace(/\/$/, '') : `https://${site.replace(/\/$/, '')}`;
-
+  const siteParam = decodeURIComponent((req.query && req.query.site) || 'example.com')
+  const base = baseOf(siteParam)
+  const limit = Math.max(1, Math.min(parseInt((req.query && req.query.limit) || '25', 10) || 25, 100))
   const pages = Array.from({ length: limit }, (_, i) => {
-    const url = i === 0 ? `${base}/` : `${base}/page-${i}`;
-    return {
-      url,
-      status: 200,
-      title: `Sample page ${i || 1}`,
-      html: `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Sample ${i || 1}</title></head><body><main><h1>Sample ${i || 1}</h1><p>Mock HTML for ${url}</p></main></body></html>`
-    };
-  });
-
-  return res.status(200).json({ site: base, count: pages.length, concurrency, saved: save, pages });
-};
+    const url = i === 0 ? `${base}/` : `${base}/page-${i}`
+    return { url, status: 200, title: `Sample page ${i || 1}`, html: `<html><head><title>Sample ${i || 1}</title></head><body><h1>Sample ${i || 1}</h1></body></html>` }
+  })
+  const body = { site: base, count: pages.length, concurrency: 4, saved: true, pages }
+  res.setHeader('Content-Type', 'application/json')
+  res.end(JSON.stringify(body))
+}

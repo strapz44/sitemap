@@ -1,8 +1,10 @@
 module.exports = (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Cache-Control', 'no-store');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  res.status(200).json({ status: 'ok' });
-};
+  try {
+    res.setHeader('Content-Type', 'application/json')
+    res.statusCode = 200
+    res.end(JSON.stringify({ status: 'ok' }))
+  } catch (e) {
+    res.statusCode = 500
+    res.end(JSON.stringify({ status: 'error' }))
+  }
+}
