@@ -112,8 +112,6 @@ const downloading = ref(false)
 
 onMounted(async () => {
   try {
-    try { await axios.get(`${API_BASE.value}/health`, { timeout: 1500 }) } catch (e) { API_BASE.value = 'https://v-prerender.vercel.app/api' }
-
     try {
       const { data } = await axios.get(`${API_BASE.value}/sitemaps/${encodeURIComponent(siteName)}`)
       doc.value = data

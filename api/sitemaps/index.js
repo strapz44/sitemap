@@ -1,13 +1,6 @@
 const store = require('../_store')
 const mockSitemaps = store.get()
-
-function setCors(req, res) {
-  const origin = req.headers.origin || '*'
-  res.setHeader('Access-Control-Allow-Origin', origin)
-  res.setHeader('Vary', 'Origin')
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-}
+const { setCors, handlePreflight } = require('../_cors')
 
 function normalize(raw) {
   try {
@@ -22,8 +15,9 @@ function normalize(raw) {
 }
 
 module.exports = async (req, res) => {
-  setCors(req, res)
-  if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end() }
+  const allowed = setCors(req, res)
+  if (req.method === 'OPTIONS') { return handlePreflight(req, res) }
+  if (!allowed) { res.statusCode = 403; return res.end('Origin not allowed') }
 
   if (req.method === 'GET') {
     res.setHeader('Content-Type', 'application/json')

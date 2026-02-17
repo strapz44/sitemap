@@ -24,18 +24,12 @@ const loginOpen = ref(false)
 body {
   font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   margin: 0;
-  background:
-    radial-gradient(60% 80% at 18% 18%, rgba(139, 92, 246, 0.28) 0%, transparent 60%),
-    radial-gradient(50% 70% at 82% 28%, rgba(56, 189, 248, 0.20) 0%, transparent 60%),
-    linear-gradient(180deg, #0b1020 0%, #0a0f1a 100%);
-  color: #e5e7eb;
+  background: #ffffff;
+  color: #0f172a;
 }
 
 html, body, #app {
-  background:
-    radial-gradient(60% 80% at 18% 18%, rgba(139, 92, 246, 0.28) 0%, transparent 60%),
-    radial-gradient(50% 70% at 82% 28%, rgba(56, 189, 248, 0.20) 0%, transparent 60%),
-    linear-gradient(180deg, #0b1020 0%, #0a0f1a 100%);
+  background: #ffffff;
 }
 
 main {

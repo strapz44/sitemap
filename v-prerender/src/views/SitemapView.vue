@@ -136,7 +136,6 @@
   
   // Charger les sitemaps au démarrage
   onMounted(async () => {
-    try { await axios.get(`${API_BASE.value}/health`, { timeout: 1500 }) } catch (e) { API_BASE.value = 'https://v-prerender.vercel.app/api' }
     await loadSitemaps()
     await loadSummaries()
   })

@@ -1,12 +1,4 @@
-function setCors(req, res) {
-  try {
-    const origin = req.headers.origin || '*'
-    res.setHeader('Access-Control-Allow-Origin', origin)
-    res.setHeader('Vary', 'Origin')
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-  } catch {}
-}
+const { setCors, handlePreflight } = require('../../_cors')
 
 function baseOf(raw) {
   const s = (raw || '').trim()
@@ -16,8 +8,9 @@ function baseOf(raw) {
 }
 
 module.exports = async (req, res) => {
-  setCors(req, res)
-  if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end() }
+  const allowed = setCors(req, res)
+  if (req.method === 'OPTIONS') { return handlePreflight(req, res) }
+  if (!allowed) { res.statusCode = 403; return res.end('Origin not allowed') }
 
   const siteParam = decodeURIComponent((req.query && req.query.site) || 'example.com')
   const base = baseOf(siteParam)

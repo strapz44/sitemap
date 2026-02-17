@@ -1,13 +1,7 @@
 const { ensureSchema, getPool } = require('./_db')
 const crypto = require('crypto')
-
-function setCors(req, res) {
-  const origin = req.headers.origin || '*'
-  res.setHeader('Access-Control-Allow-Origin', origin)
-  res.setHeader('Vary', 'Origin')
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-}
+const { setCors, handlePreflight } = require('./_cors')
+const { rateLimit } = require('./_rateLimit')
 
 function parseJSONSafe(str) {
   try { return JSON.parse(str) } catch { return null }
@@ -38,8 +32,17 @@ function sha256(input) {
 }
 
 module.exports = async (req, res) => {
-  setCors(req, res)
-  if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end() }
+  const allowed = setCors(req, res)
+  if (req.method === 'OPTIONS') { return handlePreflight(req, res) }
+  if (!allowed) { res.statusCode = 403; return res.end('Origin not allowed') }
+
+  const rl = rateLimit({ keyPrefix: 'collect', limit: Number(process.env.RATE_LIMIT_MAX || 60), windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 60000) }, req)
+  if (!rl.ok) {
+    res.statusCode = 429
+    res.setHeader('Retry-After', String(rl.retryAfterSec))
+    res.setHeader('Content-Type', 'application/json')
+    return res.end(JSON.stringify({ ok: false, error: 'rate_limited', retry_after: rl.retryAfterSec }))
+  }
 
   if (req.method !== 'POST' && req.method !== 'GET') {
     res.statusCode = 405

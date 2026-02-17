@@ -1,12 +1,6 @@
 const { ensureSchema, getPool } = require('../_db')
-
-function setCors(req, res) {
-  const origin = req.headers.origin || '*'
-  res.setHeader('Access-Control-Allow-Origin', origin)
-  res.setHeader('Vary', 'Origin')
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-}
+const { setCors, handlePreflight } = require('../_cors')
+const { requireAdmin, enforceSite } = require('../_auth')
 
 function parseDate(v) {
   const d = new Date(v)
@@ -20,9 +14,11 @@ function toInt(v, def, min, max) {
 }
 
 module.exports = async (req, res) => {
-  setCors(req, res)
-  if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end() }
+  const allowed = setCors(req, res)
+  if (req.method === 'OPTIONS') { return handlePreflight(req, res) }
+  if (!allowed) { res.statusCode = 403; return res.end('Origin not allowed') }
   if (req.method !== 'GET') { res.statusCode = 405; return res.end('Method Not Allowed') }
+  if (!requireAdmin(req, res)) return
 
   if (!(process.env.POSTGRES_URL || process.env.DATABASE_URL)) {
     res.statusCode = 503
@@ -37,6 +33,7 @@ module.exports = async (req, res) => {
   const fromStr = url.searchParams.get('from')
   const toStr = url.searchParams.get('to')
   const site = url.searchParams.get('site') || null
+  if (!enforceSite(req, res, site)) return
   const by = (url.searchParams.get('by') || '').toString()
   const limit = toInt(url.searchParams.get('limit') || '10', 10, 1, 100)
 
