@@ -9,18 +9,43 @@ import SitemapDetailsView from './views/SitemapDetailsView.vue'
 import DashboardView from './views/DashboardView.vue'
 import AnalyticsView from './views/AnalyticsView.vue'
 import LoginView from './views/LoginView.vue'
+import RegisterView from './views/RegisterView.vue'
+
+// Ensure axios sends/receives cookies (for auth)
+axios.defaults.withCredentials = true
 
 const routes = [
   { path: '/', name: 'home', component: SitemapView },
-  { path: '/dashboard', name: 'dashboard', component: DashboardView },
-  { path: '/analytics', name: 'analytics', component: AnalyticsView },
+  { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
+  { path: '/analytics', name: 'analytics', component: AnalyticsView, meta: { requiresAuth: true } },
   { path: '/login', name: 'login', component: LoginView },
+  { path: '/register', name: 'register', component: RegisterView },
   { path: '/sitemaps/:siteName(.*)', name: 'sitemap-details', component: SitemapDetailsView, props: true }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+// Simple auth state and guard; checks cookie session once, redirects to login if needed
+const authState = { checked: false, user: null }
+router.beforeEach(async (to, from, next) => {
+  if (to.meta && to.meta.requiresAuth) {
+    if (!authState.checked) {
+      try {
+        const r = await axios.get('/api/auth/me')
+        authState.user = r?.data?.user || null
+      } catch {
+        authState.user = null
+      }
+      authState.checked = true
+    }
+    if (!authState.user) {
+      return next({ name: 'login', query: { redirect: to.fullPath } })
+    }
+  }
+  next()
 })
 
 if (typeof window !== 'undefined' && axios && axios.defaults && axios.defaults.headers && axios.defaults.headers.common) {

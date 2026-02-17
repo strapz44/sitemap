@@ -45,6 +45,16 @@ async function ensureSchema() {
       create index if not exists idx_events_site on events (site);
       create index if not exists idx_events_type on events (type);
       create index if not exists idx_events_pathname on events (pathname);
+
+      create table if not exists users (
+        id bigserial primary key,
+        email text not null,
+        password_hash text not null,
+        name text,
+        created_at timestamptz not null default now(),
+        updated_at timestamptz not null default now()
+      );
+      create unique index if not exists idx_users_email_unique on users (lower(email));
     `)
   } finally {
     client.release()
