@@ -46,12 +46,20 @@ function verifyToken(token) {
 }
 
 function cookieAttrs(req, { maxAgeSec = 0 } = {}) {
-  const attrs = ['HttpOnly', 'Path=/', 'SameSite=Lax']
-  if (maxAgeSec) attrs.push(`Max-Age=${maxAgeSec}`)
-  const proto = (req.headers['x-forwarded-proto'] || '').toString()
+  const origin = (req.headers.origin || '').toString()
   const host = (req.headers.host || '').toString()
+  let crossSite = false
+  try { crossSite = origin && (new URL(origin)).host !== host } catch { crossSite = false }
+
+  // Default to Lax for same-site, None for cross-site (required for CORS XHR with credentials)
+  const sameSite = crossSite ? 'None' : 'Lax'
+  const attrs = ['HttpOnly', 'Path=/', `SameSite=${sameSite}`]
+  if (maxAgeSec) attrs.push(`Max-Age=${maxAgeSec}`)
+
+  const proto = (req.headers['x-forwarded-proto'] || '').toString()
   const isHttps = proto === 'https' || host.endsWith('.vercel.app') || process.env.NODE_ENV === 'production'
-  if (isHttps) attrs.push('Secure')
+  // Secure is mandatory when SameSite=None
+  if (isHttps || sameSite === 'None') attrs.push('Secure')
   return attrs.join('; ')
 }
 

@@ -29,9 +29,7 @@ const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
-const API_URL = (['localhost','127.0.0.1'].includes(window.location.hostname)
-  ? '/api'
-  : ((import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_URL) || '/api'))
+const API_URL = ((import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_URL) || '/api')
 
 async function onSubmit(){
   error.value = ''

@@ -37,7 +37,12 @@ function setCors(req, res) {
   }
   res.setHeader('Vary', 'Origin')
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  const requested = (req.headers['access-control-request-headers'] || '').toString()
+  if (requested) {
+    res.setHeader('Access-Control-Allow-Headers', requested)
+  } else {
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Site, X-Admin-Token')
+  }
   res.setHeader('Access-Control-Allow-Credentials', 'true')
   res.setHeader('Access-Control-Max-Age', '600')
   // Baseline API security headers

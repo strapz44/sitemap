@@ -14,6 +14,9 @@ import RegisterView from './views/RegisterView.vue'
 // Ensure axios sends/receives cookies (for auth)
 axios.defaults.withCredentials = true
 
+// Consistent API base for auth checks (works for localhost -> remote API too)
+const API_URL = (import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_URL) || '/api'
+
 const routes = [
   { path: '/', name: 'home', component: SitemapView },
   { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
@@ -34,7 +37,7 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta && to.meta.requiresAuth) {
     if (!authState.checked) {
       try {
-        const r = await axios.get('/api/auth/me')
+        const r = await axios.get(`${API_URL}/auth/me`)
         authState.user = r?.data?.user || null
       } catch {
         authState.user = null
