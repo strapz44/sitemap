@@ -1,26 +1,15 @@
 const { setCors, handlePreflight } = require('../../_cors')
+const store = require('../../_store')
 
 module.exports = async (req, res) => {
   const allowed = setCors(req, res)
   if (req.method === 'OPTIONS') { return handlePreflight(req, res) }
   if (!allowed) { res.statusCode = 403; return res.end('Origin not allowed') }
 
-  const siteParam = decodeURIComponent((req.query && req.query.site) || 'example.com')
-  const now = new Date()
-  const daysAgo = (n) => new Date(now.getTime() - n*24*3600*1000).toISOString()
-  const body = {
-    site: siteParam,
-    lastmodLatest: daysAgo(5),
-    lastCrawl: daysAgo(2),
-    changefreqCounts: { daily: 3, weekly: 7, monthly: 1 },
-    errors: 1,
-    warnings: 4,
-    httpStatus: 200,
-    size: '3.2 KB',
-    score: 92,
-    urlsSubmitted: 42,
-    urlsIndexed: 36,
-  }
+  const siteParam = decodeURIComponent((req.query && req.query.site) || '')
+  if (!siteParam) { res.statusCode = 400; res.setHeader('Content-Type','application/json'); return res.end(JSON.stringify({ error: 'site requis' })) }
+
+  const summary = store.getSummary(siteParam)
   res.setHeader('Content-Type', 'application/json')
-  res.end(JSON.stringify(body))
+  res.end(JSON.stringify(summary || { site: siteParam }))
 }

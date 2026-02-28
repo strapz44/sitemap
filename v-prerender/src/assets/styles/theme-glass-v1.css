@@ -17,7 +17,7 @@
 }
 
 /* Reusable glass surface helpers (legacy styles removed to avoid conflict with React Bits) */
-.premium-glass.glass-surface { color-scheme: dark; }
+.premium-glass.glass-surface { color-scheme: light; }
 
 .glass-chip {
   background: rgba(255,255,255,0.6);
@@ -29,31 +29,20 @@
 }
 
 .rb-glass {
-  background: linear-gradient(180deg, rgba(18,18,22,0.82), rgba(18,18,22,0.60));
-  border: 1px solid rgba(255,255,255,0.10);
+  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.68));
+  border: 1px solid var(--surface-border);
   border-radius: var(--radius);
-  backdrop-filter: saturate(230%) blur(20px);
-  -webkit-backdrop-filter: saturate(230%) blur(20px);
-  box-shadow: 0 28px 60px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.20), inset 0 -1px 0 rgba(0,0,0,0.26);
+  backdrop-filter: saturate(160%) blur(10px);
+  -webkit-backdrop-filter: saturate(160%) blur(10px);
+  box-shadow: var(--surface-shadow);
   isolation: isolate;
   position: relative;
   overflow: hidden;
 }
 
 .rb-glass--sheen::after {
-  content: '';
-  position: absolute;
-  inset: 1px;
-  border-radius: calc(var(--radius) - 1px);
-  background: linear-gradient(135deg,
-    rgba(255,255,255,0.55) 0%,
-    rgba(255,255,255,0.22) 35%,
-    rgba(255,255,255,0.10) 55%,
-    rgba(255,255,255,0.0) 75%);
-  mix-blend-mode: screen;
-  pointer-events: none;
-  background-size: 260% 100%;
-  animation: rbSheen 7.5s ease-in-out infinite;
+  content: none;
+  animation: none;
 }
 
 .rb-glass--caustics::before {

@@ -22,3 +22,13 @@ coverage/
 .windsurf/
 ms-prerender/windsurf.config.js
 ms-prerender/windsurf_deployment.yaml
+
+# Docker
+ms-prerender/Dockerfile
+Dockerfile
+**/Dockerfile
+**/Dockerfile.*
+docker-compose.yml
+docker-compose.yaml
+docker-compose.*.yml
+docker-compose.*.yaml

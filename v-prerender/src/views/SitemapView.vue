@@ -45,7 +45,7 @@
                 </div>
                 <div class="card-actions">
                   <button class="action-btn" @click="openSiteSummary(item)">Détails</button>
-                  <button class="action-btn" @click="refreshSitemap(item.siteName)">Analyser</button>
+                  <button class="action-btn" :disabled="!!refreshing[item.siteName]" @click="refreshSitemap(item.siteName)">{{ refreshing[item.siteName] ? 'Analyse…' : 'Analyser' }}</button>
                   <button class="delete-btn" @click="deleteSitemap(item.siteName)">
                     <svg viewBox="0 0 448 512" class="svgIcon">
                       <path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"/>
@@ -84,6 +84,7 @@
   const isLoading = ref(false)
   const router = useRouter()
   const summaryBySite = ref({})
+  const refreshing = ref({})
 
   // Star-border responsive sizing
   const tableEl = ref(null)
@@ -204,11 +205,16 @@
   // Rafraîchir un sitemap
   async function refreshSitemap(siteName) {
     try {
+      refreshing.value = { ...refreshing.value, [siteName]: true }
       await axios.post(`${API_BASE.value}/sitemaps/${encodeURIComponent(siteName)}/refresh`)
       await loadSitemaps()
       await loadSummaries()
     } catch (err) {
       error.value = 'Erreur lors du rafraîchissement du sitemap'
+    } finally {
+      const next = { ...refreshing.value }
+      delete next[siteName]
+      refreshing.value = next
     }
   }
   
@@ -273,10 +279,7 @@
   
   <style scoped>
   .app-wrapper {
-    background:
-      radial-gradient(60% 80% at 18% 18%, rgba(139, 92, 246, 0.35) 0%, transparent 60%),
-      radial-gradient(50% 70% at 82% 28%, rgba(56, 189, 248, 0.25) 0%, transparent 60%),
-      linear-gradient(180deg, #0b1020 0%, #0a0f1a 100%);
+    background: #ffffff;
     min-height: 100vh;
     font-family: Arial, sans-serif;
     position: relative;
@@ -417,10 +420,10 @@
     gap: 16px;
     padding: 16px 18px;
   }
-  .sitemap-card .metric-label { color: #94a3b8; }
-  .sitemap-card .metric-value { color: #e5e7eb; }
-  .sitemap-card .site-meta { color: #cbd5e1; }
-  .sitemap-card .site-name { color: #f8fafc; }
+  .sitemap-card .metric-label { color: #64748b; }
+  .sitemap-card .metric-value { color: #0f172a; }
+  .sitemap-card .site-meta { color: #475569; }
+  .sitemap-card .site-name { color: #0f172a; }
   .sitemap-card:hover {
     transform: translateY(-3px);
     box-shadow: none;
@@ -443,18 +446,17 @@
   
   /* Base style for action buttons (Voir, Recharger) matching delete icon */
   .action-btn {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(148,163,184,0.26);
-    color: #e5e7eb;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    color: #0f172a;
     padding: 0.5rem 0.9rem;
     border-radius: 10px;
     cursor: pointer;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
 
-  .action-btn:hover { background: rgba(255,255,255,0.14); border-color: var(--accent-border); color: #fff; }
+  .action-btn:hover { background: #f8fafc; border-color: var(--accent-border); color: #0f172a; }
+  .action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
   
   .delete-btn {
     width: 36px;

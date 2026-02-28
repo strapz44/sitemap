@@ -14,13 +14,13 @@ import RegisterView from './views/RegisterView.vue'
 // Ensure axios sends/receives cookies (for auth)
 axios.defaults.withCredentials = true
 
-// Consistent API base for auth checks (works for localhost -> remote API too)
-const API_URL = (import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_URL) || '/api'
+// Auth guard temporarily disabled for design validation
 
 const routes = [
-  { path: '/', name: 'home', component: SitemapView },
-  { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { requiresAuth: true } },
-  { path: '/analytics', name: 'analytics', component: AnalyticsView, meta: { requiresAuth: true } },
+  { path: '/', redirect: { name: 'dashboard' } },
+  { path: '/sitemaps', name: 'home', component: SitemapView },
+  { path: '/dashboard', name: 'dashboard', component: DashboardView },
+  { path: '/analytics', name: 'analytics', component: AnalyticsView },
   { path: '/login', name: 'login', component: LoginView },
   { path: '/register', name: 'register', component: RegisterView },
   { path: '/sitemaps/:siteName(.*)', name: 'sitemap-details', component: SitemapDetailsView, props: true }
@@ -32,24 +32,8 @@ const router = createRouter({
 })
 
 // Simple auth state and guard; checks cookie session once, redirects to login if needed
-const authState = { checked: false, user: null }
-router.beforeEach(async (to, from, next) => {
-  if (to.meta && to.meta.requiresAuth) {
-    if (!authState.checked) {
-      try {
-        const r = await axios.get(`${API_URL}/auth/me`)
-        authState.user = r?.data?.user || null
-      } catch {
-        authState.user = null
-      }
-      authState.checked = true
-    }
-    if (!authState.user) {
-      return next({ name: 'login', query: { redirect: to.fullPath } })
-    }
-  }
-  next()
-})
+// const authState = { checked: false, user: null }
+router.beforeEach(async (to, from, next) => { next() })
 
 if (typeof window !== 'undefined' && axios && axios.defaults && axios.defaults.headers && axios.defaults.headers.common) {
   axios.defaults.headers.common['x-site'] = window.location.host
