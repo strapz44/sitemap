@@ -12,7 +12,11 @@
     "dev:manager": "npm --prefix ms-prerender-manager run dev",
     "build": "npm --prefix v-prerender run build && npm --prefix ms-prerender run build",
     "vercel-build": "npm --prefix v-prerender install && npm --prefix v-prerender run build",
-    "start:backend": "npm --prefix ms-prerender run start"
+    "start:backend": "npm --prefix ms-prerender run start",
+    "test:analytics": "node api/analytics/__tests__.js",
+    "deploy:analytics": "bash deploy-analytics.sh production",
+    "deploy:analytics:netlify": "bash deploy-analytics.sh netlify",
+    "deploy:analytics:vercel": "bash deploy-analytics.sh vercel"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

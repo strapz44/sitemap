@@ -1,13 +1,63 @@
 <template>
   <div class="details-page">
-    
+    <div class="back-btn" @click="$router.back()">← Retour</div>
 
     <div v-if="loading" class="loading">Chargement...</div>
     <div v-else>
       <div v-if="!doc && !summary" class="error">Aucune donnée trouvée.</div>
       <div v-else>
+        <!-- Analytics Section -->
+        <div class="analytics-section" v-if="hasAnalytics">
+          <h2 class="section-title">Analyse en Temps Réel</h2>
+          <div class="analytics-grid">
+            <div class="analytics-card">
+              <div class="analytic-label">Pageviews (7j)</div>
+              <div class="analytic-value">{{ analyticsData.pageviews }}</div>
+              <div class="analytic-change" :class="analyticsData.pageviewsTrend > 0 ? 'positive' : 'negative'">
+                {{ analyticsData.pageviewsTrend > 0 ? '↑' : '↓' }} {{ Math.abs(analyticsData.pageviewsTrend) }}%
+              </div>
+            </div>
+            <div class="analytics-card">
+              <div class="analytic-label">Sessions</div>
+              <div class="analytic-value">{{ analyticsData.sessions }}</div>
+              <div class="analytic-change" :class="analyticsData.sessionsTrend > 0 ? 'positive' : 'negative'">
+                {{ analyticsData.sessionsTrend > 0 ? '↑' : '↓' }} {{ Math.abs(analyticsData.sessionsTrend) }}%
+              </div>
+            </div>
+            <div class="analytics-card">
+              <div class="analytic-label">Visiteurs</div>
+              <div class="analytic-value">{{ analyticsData.visitors }}</div>
+              <div class="analytic-change">Uniques</div>
+            </div>
+            <div class="analytics-card">
+              <div class="analytic-label">Bounce Rate</div>
+              <div class="analytic-value">{{ analyticsData.bounceRate }}</div>
+              <div class="analytic-change">Global</div>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="charts-row">
+            <div class="chart-item">
+              <h3 class="chart-title">Trafic (7 jours)</h3>
+              <canvas ref="sitemapTrafficChart"></canvas>
+            </div>
+            <div class="chart-item">
+              <h3 class="chart-title">Top Pages</h3>
+              <div class="simple-chart">
+                <div class="chart-bar" v-for="page in topPages.slice(0, 5)" :key="page.pathname">
+                  <div class="bar-label">{{ page.pathname.split('/').pop() || '/' }}</div>
+                  <div class="bar">
+                    <div class="bar-fill" :style="{ width: getChartWidth(page.hits) + '%' }"></div>
+                  </div>
+                  <div class="bar-value">{{ page.hits }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="metrics-panel">
-          <div class="metrics-header"></div>
 
           <div class="metrics-grid">
             <div class="metric-card">
@@ -64,6 +114,16 @@
           </div>
         </div>
 
+        <div class="details-charts">
+          <div class="chart-container">
+            <h2 class="section-title">Trafic (7 jours)</h2>
+            <canvas ref="detailTrafficChart"></canvas>
+          </div>
+          <div class="chart-container">
+            <h2 class="section-title">Sources de Trafic</h2>
+            <canvas ref="detailSourcesChart"></canvas>
+          </div>
+        </div>
         <div class="urls-list">
         <div v-for="(u, i) in urls" :key="i" class="url-item">
           <a class="url-loc" :href="u.loc" target="_blank" rel="noopener">{{ u.loc }}</a>
@@ -88,9 +148,10 @@
 </template>
 
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import AnalyticsService from '../services/AnalyticsService' 
 
 const route = useRoute()
 const rawParam = route.params.siteName
@@ -109,6 +170,17 @@ const loading = ref(true)
 const doc = ref(null)
 const summary = ref(null)
 const downloading = ref(false)
+
+// analytics chart refs
+const detailTrafficChart = ref(null)
+const detailSourcesChart = ref(null)
+let detailTrafficInstance = null
+let detailSourcesInstance = null
+
+const detailTimeseries = ref([])
+const detailSources = ref([])
+
+let refreshInterval = null
 
 onMounted(async () => {
   try {
@@ -142,6 +214,12 @@ onMounted(async () => {
     }
     loading.value = false
   }
+  await loadAnalytics()
+  refreshInterval = setInterval(loadAnalytics, 60000)
+})
+
+onUnmounted(() => {
+  if (refreshInterval) clearInterval(refreshInterval)
 })
 
 // Normalize urls regardless of storage shape
@@ -218,6 +296,48 @@ const indexPct = computed(() => {
 })
 const indexedText = computed(() => `${indexIndexed.value} / ${indexTotal.value}`)
 
+async function renderDetailTrafficChart(){
+  try {
+    if (!detailTrafficChart.value || detailTimeseries.value.length === 0) return
+    const { default: Chart } = await import('chart.js/auto')
+    if (detailTrafficInstance) detailTrafficInstance.destroy()
+    const labels = detailTimeseries.value.map(i => new Date(i.ts).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }))
+    const pageviews = detailTimeseries.value.map(i => Number(i.pageviews || 0))
+    const sessions = detailTimeseries.value.map(i => Number(i.sessions || 0))
+    detailTrafficInstance = new Chart(detailTrafficChart.value.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Pageviews', data: pageviews, borderColor: '#667eea', backgroundColor: 'rgba(102,126,234,0.1)', tension:0.4, fill:true },
+          { label: 'Sessions', data: sessions, borderColor: '#f5576c', backgroundColor: 'rgba(245,87,108,0.1)', tension:0.4, fill:true }
+        ]
+      },
+      options: { responsive:true, maintainAspectRatio:true, plugins:{legend:{display:true, position:'bottom'}}, scales:{y:{beginAtZero:true}} }
+    })
+  } catch (e) {
+    console.error('Erreur chart détail trafic:', e)
+  }
+}
+
+async function renderDetailSourcesChart(){
+  try {
+    if (!detailSourcesChart.value || detailSources.value.length === 0) return
+    const { default: Chart } = await import('chart.js/auto')
+    if (detailSourcesInstance) detailSourcesInstance.destroy()
+    const labels = detailSources.value.map(s => s.name || 'Unknown')
+    const data = detailSources.value.map(s => Number(s.hits || 0))
+    const colors = ['#667eea','#f5576c','#43e97b','#4facfe','#f093fb']
+    detailSourcesInstance = new Chart(detailSourcesChart.value.getContext('2d'), {
+      type: 'doughnut',
+      data:{labels,datasets:[{data,backgroundColor:colors.slice(0,labels.length),borderColor:'#fff',borderWidth:2}]},
+      options:{responsive:true, maintainAspectRatio:true, plugins:{legend:{display:true,position:'right'}}}
+    })
+  } catch(e){
+    console.error('Erreur chart détail sources:', e)
+  }
+}
+
 async function downloadHtml(){
   if (!siteName) return
   downloading.value = true
@@ -237,6 +357,24 @@ async function downloadHtml(){
     console.error(e)
   } finally {
     downloading.value = false
+  }
+}
+
+async function loadAnalytics(){
+  if (!siteName) return
+  try {
+    const now = new Date()
+    const from = new Date(now.getTime() - 7*24*3600*1000).toISOString()
+    const to = now.toISOString()
+    const ts = await AnalyticsService.timeseries(from, to, siteName)
+    detailTimeseries.value = Array.isArray(ts.items) ? ts.items : []
+    const src = await AnalyticsService.top('utm_source', from, to, 10, siteName)
+    detailSources.value = Array.isArray(src.items) ? src.items : []
+
+    await renderDetailTrafficChart()
+    await renderDetailSourcesChart()
+  } catch (err) {
+    console.error('Analytics detail error:', err)
   }
 }
 
@@ -275,7 +413,7 @@ function deriveSummaryFromDoc(){
 </script>
 
 <style scoped>
-.details-page { padding: 2rem; }
+.details-page { padding: 6rem 2rem 2rem; }
 .sticky-footer {
   position: sticky;
   bottom: 0;
@@ -330,6 +468,21 @@ function deriveSummaryFromDoc(){
 
 @media (max-width: 900px) { .metrics-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 @media (max-width: 540px) { .metrics-grid { grid-template-columns: 1fr; } }
+
+/* detail charts */
+.details-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.details-charts .chart-container {
+  background: white;
+  border-radius: 15px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  min-height: 240px;
+}
 
 .btn-add {
   font-size: 15px;

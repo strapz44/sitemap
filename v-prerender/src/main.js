@@ -1,41 +1,13 @@
 // src/main.js
 import { createApp } from 'vue'
 import App from './App.vue'
-
-import { createRouter, createWebHistory } from 'vue-router'
+import router from './router/index.js'
 import axios from 'axios'
-import SitemapView from './views/SitemapView.vue'
-import SitemapDetailsView from './views/SitemapDetailsView.vue'
-import DashboardView from './views/DashboardView.vue'
-import AnalyticsView from './views/AnalyticsView.vue'
-import LoginView from './views/LoginView.vue'
-import RegisterView from './views/RegisterView.vue'
 
 // Ensure axios sends/receives cookies (for auth)
 axios.defaults.withCredentials = true
 
-// Auth guard temporarily disabled for design validation
-
-const routes = [
-  { path: '/', redirect: { name: 'dashboard' } },
-  { path: '/sitemaps', name: 'home', component: SitemapView },
-  { path: '/dashboard', name: 'dashboard', component: DashboardView },
-  { path: '/analytics', name: 'analytics', component: AnalyticsView },
-  { path: '/login', name: 'login', component: LoginView },
-  { path: '/register', name: 'register', component: RegisterView },
-  { path: '/sitemaps/:siteName(.*)', name: 'sitemap-details', component: SitemapDetailsView, props: true }
-]
-
-const router = createRouter({
-  history: createWebHistory(),
-  routes,
-})
-
-// Simple auth state and guard; checks cookie session once, redirects to login if needed
-// const authState = { checked: false, user: null }
-router.beforeEach(async (to, from, next) => { next() })
-
-if (typeof window !== 'undefined' && axios && axios.defaults && axios.defaults.headers && axios.defaults.headers.common) {
+if (typeof window !== 'undefined' && axios?.defaults?.headers?.common) {
   axios.defaults.headers.common['x-site'] = window.location.host
 }
 

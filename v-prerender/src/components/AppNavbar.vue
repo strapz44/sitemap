@@ -1,88 +1,73 @@
 <template>
-<nav class="navbar">
-  <GlassSurface
-    :borderRadius="24"
-    :borderWidth="0.07"
-    :brightness="50"
-    :opacity="0.9"
-    :blur="8"
-    :displace="0.5"
-    :backgroundOpacity="0.2"
-    :saturation="1"
-    :distortionScale="-60"
-    :redOffset="0"
-    :greenOffset="10"
-    :blueOffset="20"
-    xChannel="R"
-    yChannel="G"
-    mixBlendMode="normal"
-    rootClass="card-nav premium-glass"
+  <!-- using the CardNav design from React Bits as the base for our navbar -->
+  <CardNav
+    :items="menuItems"
+    className="premium-glass glass-surface glass-surface--fallback"
+    baseColor="transparent"
+    menuColor="#ffffff"
+    buttonBgColor="#111111"
+    buttonTextColor="#ffffff"
+    ease="power3.out"
+    @cta="go('dashboard')"
   >
-  <div class="nav-container">
-    <div class="links" ref="linksEl" @mouseleave="positionActive()">
-      <a href="#" ref="homeRef" :class="['nav-link','tab', { active: route.name === 'dashboard' }]" @mouseenter="(e) => positionIndicator(e.currentTarget)" @click.prevent="go('dashboard')">Dashboard</a>
-      <a href="#" ref="sitemapsRef" :class="['nav-link','tab', { active: isSitemapsRoute }]" @mouseenter="(e) => positionIndicator(e.currentTarget)" @click.prevent="go('home')">Sitemaps</a>
-      <a href="#" ref="analyticsRef" :class="['nav-link','tab', { active: route.name === 'analytics' }]" @mouseenter="(e) => positionIndicator(e.currentTarget)" @click.prevent="go('analytics')">Analytics</a>
-      <span class="indicator" ref="indicatorRef"></span>
-    </div>
-    <div class="right-actions">
-      <button class="login-btn" @click="go('login')">Connexion</button>
-      <button class="menu-btn" :aria-expanded="isOpen.toString()" aria-label="Ouvrir le menu" @click="toggle">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
-          <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      </button>
-    </div>
-  </div>
-  </GlassSurface>
-
-  <div class="menu-panel" :class="{ open: isOpen }">
-    <a href="#" class="panel-link" @click.prevent="go('dashboard')">Dashboard</a>
-    <a href="#" class="panel-link" @click.prevent="go('home')">Sitemaps</a>
-    <a href="#" class="panel-link" @click.prevent="go('analytics')">Analytics</a>
-  </div>
-</nav>
+    <!-- allow overriding CTA text if needed -->
+    <template #cta>Connexion</template>
+  </CardNav>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick, watch, computed } from 'vue'
-import gsap from 'gsap'
-import { useRoute, useRouter } from 'vue-router'
-import GlassSurface from './vendor/GlassSurface.vue'
-const route = useRoute()
+import { useRouter } from 'vue-router'
+import CardNav from './CardNav.vue'
+
 const router = useRouter()
-const isOpen = ref(false)
-function toggle(){ isOpen.value = !isOpen.value }
-const linksEl = ref(null)
-const homeRef = ref(null)
-const sitemapsRef = ref(null)
-const analyticsRef = ref(null)
-const indicatorRef = ref(null)
-const activeElRef = ref(null)
-const isSitemapsRoute = computed(() => route.name === 'home' || route.name === 'sitemap-details')
-function go(name){ router.push({ name }) }
-function positionIndicator(el){
-  const c = linksEl.value, i = indicatorRef.value
-  if(!el || !c || !i) return
-  const r = el.getBoundingClientRect()
-  const pr = c.getBoundingClientRect()
-  const left = r.left - pr.left
-  gsap.to(i, { duration: 0.25, width: r.width, x: left, opacity: 1, ease: 'power2.out' })
+
+function go(name) {
+  router.push({ name })
 }
-function updateActiveByRoute(){
-  let el = null
-  const n = route.name
-  if (n === 'dashboard') el = homeRef.value
-  else if (n === 'analytics') el = analyticsRef.value
-  else el = sitemapsRef.value
-  activeElRef.value = el
-  positionIndicator(el)
-}
-function positionActive(){ if (activeElRef.value) positionIndicator(activeElRef.value) }
-function onResize(){ positionActive() }
-onMounted(() => { nextTick(updateActiveByRoute); window.addEventListener('resize', onResize) })
-watch(() => route.name, () => nextTick(updateActiveByRoute))
-onBeforeUnmount(() => { window.removeEventListener('resize', onResize) })
+
+// build the three primary cards used by the navigation
+// each card contains a list of links which execute router pushes
+const menuItems = [
+  {
+    label: 'Dashboard',
+    bgColor: 'rgba(255,255,255,0.15)',
+    textColor: '#111',
+    links: [
+      {
+        label: 'Voir',
+        href: '#',
+        ariaLabel: 'Aller au tableau de bord',
+        onClick: () => go('dashboard')
+      }
+    ]
+  },
+  {
+    label: 'Sitemaps',
+    bgColor: 'rgba(255,255,255,0.15)',
+    textColor: '#111',
+    links: [
+      {
+        label: 'Explorer',
+        href: '#',
+        ariaLabel: 'Parcourir les sitemaps',
+        onClick: () => go('home')
+      }
+    ]
+  },
+  {
+    label: 'Analytics',
+    bgColor: 'rgba(255,255,255,0.15)',
+    textColor: '#111',
+    links: [
+      {
+        label: 'Consulter',
+        href: '#',
+        ariaLabel: 'Voir les statistiques',
+        onClick: () => go('analytics')
+      }
+    ]
+  }
+]
 </script>
 
 <style scoped>

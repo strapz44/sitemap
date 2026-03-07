@@ -47,9 +47,7 @@
                   <button class="action-btn" @click="openSiteSummary(item)">Détails</button>
                   <button class="action-btn" :disabled="!!refreshing[item.siteName]" @click="refreshSitemap(item.siteName)">{{ refreshing[item.siteName] ? 'Analyse…' : 'Analyser' }}</button>
                   <button class="delete-btn" @click="deleteSitemap(item.siteName)">
-                    <svg viewBox="0 0 448 512" class="svgIcon">
-                      <path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"/>
-                    </svg>
+                    <HiTrash class="svgIcon" />
                   </button>
                 </div>
               </GlassSurface>
@@ -71,6 +69,7 @@
   import axios from 'axios'
   import GlassSurface from '../components/vendor/GlassSurface.vue'
   import GlassGenerateButton from '../components/GlassGenerateButton.vue'
+  import { HiTrash } from 'react-icons/hi'
   
   
   const API_URL = (['localhost','127.0.0.1'].includes(window.location.hostname)
@@ -279,7 +278,7 @@
   
   <style scoped>
   .app-wrapper {
-    background: #ffffff;
+    background: transparent;
     min-height: 100vh;
     font-family: Arial, sans-serif;
     position: relative;
@@ -289,7 +288,7 @@
   /* Ancien fond supprimé pour éviter tout conflit visuel */
   
   .page-container {
-    padding: 2rem;
+    padding: 6rem 2rem 2rem;
     max-width: 1200px;
     margin: 0 auto;
     position: relative;
@@ -338,13 +337,13 @@
   }
   
   .input {
-    color: #e5e7eb;
-    border: 1px solid rgba(148,163,184,0.26);
+    color: #111;
+    border: 1px solid rgba(255,255,255,0.18);
     border-radius: 14px;
     padding: 10px 14px;
-    background: rgba(255,255,255,0.08);
-    backdrop-filter: saturate(160%) blur(14px);
-    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    background: var(--glass-tint, rgba(255,255,255,0.04));
+    backdrop-filter: blur(32px) saturate(280%) brightness(1.6);
+    -webkit-backdrop-filter: blur(32px) saturate(280%) brightness(1.6);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
     max-width: 260px;
     height: 44px;
@@ -375,11 +374,11 @@
     border-radius: 12px;
     transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     line-height: 20px;
-    border: 1px solid rgba(148,163,184,0.26);
-    background: rgba(255,255,255,0.08);
-    color: #e5e7eb;
-    backdrop-filter: saturate(160%) blur(14px);
-    -webkit-backdrop-filter: saturate(160%) blur(14px);
+    border: 1px solid rgba(255,255,255,0.18);
+    background: var(--glass-tint, rgba(255,255,255,0.04));
+    color: #111;
+    backdrop-filter: blur(32px) saturate(280%) brightness(1.6);
+    -webkit-backdrop-filter: blur(32px) saturate(280%) brightness(1.6);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
     height: 44px;
   }
@@ -407,12 +406,17 @@
   .sitemap-list { display: flex; justify-content: center; }
   .card-list { display: grid; gap: 12px; width: min(860px, 100%); }
   .sitemap-card { padding: 0; border-radius: 16px; }
-  :deep(.sitemap-card:not(.premium-glass).glass-surface--svg),
-  :deep(.sitemap-card:not(.premium-glass).glass-surface--fallback) {
-    background: rgba(255,255,255,0.72);
-    border: 1px solid rgba(148,163,184,0.35);
-    box-shadow: 0 14px 30px rgba(2,6,23,0.12), inset 0 1px 0 rgba(255,255,255,0.35);
+  
+  /* Premium glass cards - ultra-transparent Apple style */
+  :deep(.sitemap-card.premium-glass.glass-surface--svg),
+  :deep(.sitemap-card.premium-glass.glass-surface--fallback) {
+    background: var(--glass-tint, rgba(255,255,255,0.04)) !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    backdrop-filter: blur(32px) saturate(280%) brightness(1.6) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(280%) brightness(1.6) !important;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.45), 0 16px 48px rgba(0,0,0,0.12) !important;
   }
+  
   :deep(.sitemap-card .glass-surface__content) {
     display: grid;
     grid-template-columns: 1.7fr 1.1fr auto;
@@ -480,14 +484,11 @@
     width: 16px;
     height: 16px;
     transition: all 0.3s;
+    color: #ef4444;
   }
   
-  .svgIcon path {
-    fill: #ef4444;
-  }
-  
-  .delete-btn:hover .svgIcon path {
-    fill: #b91c1c;
+  .delete-btn:hover .svgIcon {
+    color: #b91c1c;
   }
   
   .error-message {
