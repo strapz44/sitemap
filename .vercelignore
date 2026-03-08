@@ -1,7 +1,0 @@
-api/
-ms-prerender/
-ms-prerender-manager/
-release/
-*.md
-.git
-node_modules
