@@ -1,5 +1,5 @@
 <template>
-  <div class="globe-wrapper" ref="wrapperRef">
+  <div class="globe-wrapper">
     <canvas ref="canvasRef" class="globe-canvas" />
     <div class="globe-overlay" v-if="!ready">
       <span class="globe-spinner" />
@@ -16,7 +16,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import createGlobe from 'cobe'
 import axios from 'axios'
 
@@ -27,7 +27,6 @@ const props = defineProps({
   size: { type: Number, default: 500 },
 })
 
-const wrapperRef = ref(null)
 const canvasRef = ref(null)
 const ready = ref(false)
 const hovered = ref(null)
