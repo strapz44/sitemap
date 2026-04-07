@@ -3,6 +3,7 @@ import SitemapView from '../views/SitemapView.vue'
 import SitemapDetailsView from '../views/SitemapDetailsView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import AnalyticsView from '../views/AnalyticsView.vue'
+import GlobeView from '../views/GlobeView.vue'
 import LoginView from '../views/LoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
 
@@ -11,6 +12,7 @@ const routes = [
   { path: '/sitemaps', name: 'home', component: SitemapView },
   { path: '/dashboard', name: 'dashboard', component: DashboardView },
   { path: '/analytics', name: 'analytics', component: AnalyticsView },
+  { path: '/globe', name: 'globe', component: GlobeView },
   { path: '/login', name: 'login', component: LoginView },
   { path: '/register', name: 'register', component: RegisterView },
   { path: '/sitemaps/:siteName(.*)', name: 'sitemap-details', component: SitemapDetailsView, props: true },

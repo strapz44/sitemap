@@ -1,0 +1,107 @@
+/**
+ * Glowing Effect — équivalent Vue de @aceternity/glowing-effect
+ * Usage: ajouter la classe `.glow-card` sur n'importe quel élément.
+ * Variantes: `.glow-card--blue` | `.glow-card--rainbow` | `.glow-card--subtle`
+ */
+
+/* ── Base ──────────────────────────────────────────────────── */
+.glow-card {
+  position: relative;
+  border-radius: 1rem;
+  isolation: isolate;
+}
+
+/* Pseudo-élément qui porte le dégradé rotatif */
+.glow-card::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--glow-angle, 0deg),
+    #38bdf8,
+    #818cf8,
+    #f472b6,
+    #fb923c,
+    #34d399,
+    #38bdf8
+  );
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  animation: glow-rotate 4s linear infinite paused;
+}
+
+/* Fond intérieur pour masquer le dégradé sous le contenu */
+.glow-card::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: calc(1rem - 1px);
+  background: inherit;
+  z-index: -1;
+}
+
+/* Active le glowing au hover */
+.glow-card:hover::before {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+/* ── Variante bleue (arc de connexion / globe) ─────────────── */
+.glow-card--blue::before {
+  background: conic-gradient(
+    from var(--glow-angle, 0deg),
+    transparent 60%,
+    #38bdf8 80%,
+    #0ea5e9 90%,
+    transparent 100%
+  );
+  opacity: 0.6;
+  animation-play-state: running;
+}
+
+/* ── Variante rainbow permanente ──────────────────────────── */
+.glow-card--rainbow::before {
+  opacity: 0.7;
+  animation-play-state: running;
+}
+
+/* ── Variante subtile (toujours visible, faible intensité) ── */
+.glow-card--subtle::before {
+  background: conic-gradient(
+    from var(--glow-angle, 0deg),
+    transparent 50%,
+    rgba(56, 189, 248, 0.4) 75%,
+    rgba(129, 140, 248, 0.4) 90%,
+    transparent 100%
+  );
+  opacity: 1;
+  animation-play-state: running;
+}
+
+/* ── Animation de rotation ────────────────────────────────── */
+@property --glow-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes glow-rotate {
+  to {
+    --glow-angle: 360deg;
+  }
+}
+
+/* ── Utilitaire: fond sombre pour les cartes globe ────────── */
+.glow-card-dark {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glow-card-light {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
