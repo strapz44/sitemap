@@ -4,7 +4,7 @@
     :items="menuItems"
     className="premium-glass glass-surface glass-surface--fallback"
     baseColor="transparent"
-    menuColor="#ffffff"
+    menuColor="#0f172a"
     buttonBgColor="#111111"
     buttonTextColor="#ffffff"
     ease="power3.out"

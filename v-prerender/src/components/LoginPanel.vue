@@ -38,9 +38,13 @@ const emit = defineEmits(['close', 'success', 'error'])
 
 const email = ref('')
 const password = ref('')
+const totpCode = ref('')
+const backupCode = ref('')
 const loading = ref(false)
 const error = ref('')
 const ready = ref(false)
+const needs2FA = ref(false)
+const showBackup = ref(false)
 
 const API_URL = (['localhost','127.0.0.1'].includes(window.location.hostname)
   ? '/api'
@@ -50,7 +54,11 @@ watch(() => props.open, async (v) => {
   if (v) {
     email.value = ''
     password.value = ''
+    totpCode.value = ''
+    backupCode.value = ''
     error.value = ''
+    needs2FA.value = false
+    showBackup.value = false
     ready.value = false
     await nextTick()
     requestAnimationFrame(() => { ready.value = true })
@@ -65,19 +73,30 @@ async function onSubmit(){
   error.value = ''
   loading.value = true
   try {
-    try { await axios.get(`${API_URL}/health`) } catch (e) { void e }
-    const isLocal = ['localhost','127.0.0.1'].includes(window.location.hostname)
-    const url = isLocal
-      ? `${API_URL}/auth/login?email=${encodeURIComponent(email.value)}&password=${encodeURIComponent(password.value)}`
-      : `${API_URL}/auth/login`
-    const payload = isLocal ? undefined : { email: email.value, password: password.value }
-    const { data } = await axios.post(url, payload)
-    emit('success', data)
-    emit('close')
+    const payload = { email: email.value, password: password.value }
+    if (needs2FA.value) {
+      if (backupCode.value) payload.backupCode = backupCode.value
+      else payload.totpCode = totpCode.value
+    }
+    const { data } = await axios.post(`${API_URL}/auth/login`, payload)
+    if (data.requires2FA) {
+      needs2FA.value = true
+      loading.value = false
+      return
+    }
+    if (data.ok) {
+      emit('success', data)
+      emit('close')
+    }
   } catch (e) {
-    const status = e?.response?.status
     const detail = e?.response?.data?.error || e?.message
-    error.value = `Impossible de se connecter${status ? ` (HTTP ${status})` : ''}: ${detail || 'erreur inconnue'}`
+    const msg = {
+      invalid_credentials: 'Email ou mot de passe incorrect',
+      invalid_totp: 'Code authenticator invalide',
+      invalid_backup_code: 'Code de secours invalide',
+      rate_limited: 'Trop de tentatives. Réessayez plus tard.',
+    }[detail] || `Erreur de connexion`
+    error.value = msg
     emit('error', e)
   } finally {
     loading.value = false

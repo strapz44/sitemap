@@ -13,6 +13,17 @@
       </defs>
       <rect width="100%" height="100%" fill="url(#dot-grid)" />
 
+      <!-- Contours des continents -->
+      <path
+        v-for="(d, i) in landPaths"
+        :key="`land-${i}`"
+        :d="d"
+        fill="rgba(148,163,184,0.08)"
+        stroke="rgba(148,163,184,0.3)"
+        stroke-width="0.5"
+        stroke-linejoin="round"
+      />
+
       <!-- Arcs de connexion entre sites -->
       <g v-for="(arc, i) in arcs" :key="i">
         <path
@@ -61,7 +72,7 @@
         <!-- Label -->
         <text
           :x="pt.x"
-          :y="pt.y - 10"
+          :y="pt.y - 10 - (pt.labelOffsetY || 0)"
           text-anchor="middle"
           font-size="9"
           :fill="labelColor"
@@ -99,6 +110,7 @@ const H = 400
 
 const loading = ref(true)
 const sites = ref([])
+const landPaths = ref([])
 
 // Projection Mercator simplifiée → coordonnées SVG
 function latLngToXY(lat, lng) {
@@ -109,12 +121,24 @@ function latLngToXY(lat, lng) {
   return { x: Math.max(0, Math.min(W, x)), y: Math.max(0, Math.min(H, y)) }
 }
 
-const points = computed(() =>
-  sites.value.map((s) => {
+const points = computed(() => {
+  const raw = sites.value.map((s) => {
     const { x, y } = latLngToXY(s.lat, s.lng)
     return { x, y, label: s.domain || s.site, site: s.site }
   })
-)
+  // Offset overlapping labels so they don't stack
+  for (let i = 0; i < raw.length; i++) {
+    for (let j = i + 1; j < raw.length; j++) {
+      const dx = Math.abs(raw[i].x - raw[j].x)
+      const dy = Math.abs(raw[i].y - raw[j].y)
+      if (dx < 40 && dy < 14) {
+        raw[j].labelOffsetY = 14 * (j - i)
+      }
+    }
+    if (!raw[i].labelOffsetY) raw[i].labelOffsetY = 0
+  }
+  return raw
+})
 
 // Calcule la longueur approchée d'un chemin SVG cubique
 function approxPathLength(x1, y1, cx, cy, x2, y2) {
@@ -171,7 +195,51 @@ async function fetchSites() {
   }
 }
 
-onMounted(fetchSites)
+// Minimal TopoJSON decoder for land-110m
+function decodeTopo(topo) {
+  const { scale, translate } = topo.transform
+  const arcs = topo.arcs.map(arc => {
+    let x = 0, y = 0
+    return arc.map(([dx, dy]) => {
+      x += dx; y += dy
+      return [x * scale[0] + translate[0], y * scale[1] + translate[1]]
+    })
+  })
+  function getArc(i) { return i >= 0 ? arcs[i] : [...arcs[~i]].reverse() }
+  function ring(indices) {
+    let c = []
+    indices.forEach(i => { const a = getArc(i); c.push(...(c.length ? a.slice(1) : a)) })
+    return c
+  }
+  const paths = []
+  topo.objects.land.geometries.forEach(g => {
+    const polys = g.type === 'Polygon' ? [g.arcs] : g.arcs
+    polys.forEach(p => p.forEach(r => paths.push(ring(r))))
+  })
+  return paths
+}
+
+function coordsToSvgPath(coords) {
+  return coords.map((c, i) => {
+    const { x, y } = latLngToXY(c[1], c[0])
+    return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`
+  }).join('') + 'Z'
+}
+
+async function fetchLandOutlines() {
+  try {
+    const res = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json')
+    const topo = await res.json()
+    landPaths.value = decodeTopo(topo).map(coordsToSvgPath)
+  } catch (e) {
+    console.warn('[WorldMap] Could not load land outlines', e)
+  }
+}
+
+onMounted(() => {
+  fetchSites()
+  fetchLandOutlines()
+})
 </script>
 
 <style scoped>

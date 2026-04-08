@@ -2,7 +2,11 @@
   <div id="app" class="theme-violet">
     <AppNavbar @open-login="loginOpen = true" />
     <LoginPanel :open="loginOpen" @close="loginOpen = false" />
-    <router-view />
+    <router-view v-slot="{ Component }">
+      <transition name="page" mode="out-in">
+        <component :is="Component" />
+      </transition>
+    </router-view>
     <AppDock />
   </div>
 </template>
@@ -20,16 +24,44 @@ const loginOpen = ref(false)
 @import url('./assets/styles/tailwind.css');
 @import url('./assets/styles/theme-glass-v1.css');
 @import url('./assets/styles/figma-tokens.css');
+@import url('./assets/styles/glowing-effect.css');
+
+/* CSS Houdini @property must be global — does not work inside scoped styles */
+@property --glow-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --noise-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
 
 body {
   font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   margin: 0;
-  background: #ffffff;
+  background: #f8fafc;
   color: #0f172a;
 }
 
 html, body, #app {
-  background: #ffffff;
+  background: #f8fafc;
+}
+
+/* ── Page route transitions ──────────────── */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 
 main {
@@ -46,21 +78,23 @@ table {
 th, td {
   text-align: left;
   padding: 16px;
-  background-color: #1e1e1e;
-  color: #e0e0e0;
-  border: 1px solid #444;
+  background-color: rgba(255,255,255,0.6);
+  color: #1e293b;
+  border: 1px solid rgba(0,0,0,0.06);
   border-radius: 8px;
 }
 
 th {
-  background: linear-gradient(180deg, #3a3a3a, #1e1e1e);
-  font-size: 1.1rem;
-  letter-spacing: 0.05rem;
+  background: rgba(241,245,249,0.9);
+  font-size: 0.85rem;
+  letter-spacing: 0.03rem;
   text-transform: uppercase;
+  font-weight: 600;
+  color: #475569;
 }
 
 tr:hover td {
-  background-color: #2a2a2a;
+  background-color: rgba(248,250,252,0.9);
 }
 
 button:not(.btn-add):not(.action-btn):not(.delete-btn):not(.menu-btn) {

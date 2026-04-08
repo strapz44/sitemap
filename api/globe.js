@@ -1,5 +1,6 @@
 const { setCors, handlePreflight } = require('./_cors')
 const store = require('./_store')
+const http = require('http')
 const https = require('https')
 const dns = require('dns').promises
 
@@ -16,8 +17,9 @@ function extractDomain(siteUrl) {
 }
 
 function fetchJson(url) {
+  const client = url.startsWith('https') ? https : http
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    client.get(url, (res) => {
       let data = ''
       res.on('data', chunk => { data += chunk })
       res.on('end', () => {
@@ -52,8 +54,8 @@ async function geolocate(domain) {
     const ip = await resolveIp(domain)
     if (!ip) throw new Error('no ip')
 
-    // ip-api.com — gratuit jusqu'à 45 req/min, pas de clé requise
-    const data = await fetchJson(`https://ip-api.com/json/${ip}?fields=status,lat,lon,country,city,regionName`)
+    // ip-api.com — gratuit jusqu'à 45 req/min, pas de clé requise (HTTP uniquement en free tier)
+    const data = await fetchJson(`http://ip-api.com/json/${ip}?fields=status,lat,lon,country,city,regionName`)
     if (data.status !== 'success') throw new Error('geo failed')
 
     const result = {

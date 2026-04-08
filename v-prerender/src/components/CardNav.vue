@@ -19,6 +19,17 @@
           <div class="hamburger-line" />
         </div>
 
+        <!-- Inline navigation links (always visible) -->
+        <div class="nav-inline-links">
+          <a
+            v-for="(item, idx) in (items || []).slice(0, 4)"
+            :key="`inline-${idx}`"
+            class="nav-inline-link"
+            href="#"
+            @click.prevent="item.links && item.links[0] && item.links[0].onClick && item.links[0].onClick()"
+          >{{ item.label }}</a>
+        </div>
+
         <!-- logo only shown when prop provided -->
         <div v-if="logo" class="logo-container">
           <img :src="logo" :alt="logoAlt" class="logo" />
@@ -52,8 +63,7 @@
               :aria-label="lnk.ariaLabel"
               @click.prevent="lnk.onClick && lnk.onClick()"
             >
-              <!-- React icon for arrow -->
-              <GoArrowUpRight class="nav-card-link-icon" aria-hidden="true" />
+              <svg class="nav-card-link-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M4.22 11.78a.75.75 0 010-1.06L9.44 5.5H5.75a.75.75 0 010-1.5h5.5a.75.75 0 01.75.75v5.5a.75.75 0 01-1.5 0V6.56l-5.22 5.22a.75.75 0 01-1.06 0z" clip-rule="evenodd"/></svg>
               {{ lnk.label }}
             </a>
           </div>
@@ -67,7 +77,6 @@
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { gsap } from 'gsap'
 import './CardNav.css'
-import { GoArrowUpRight } from 'react-icons/go'
 
 const props = defineProps({
   logo: String,

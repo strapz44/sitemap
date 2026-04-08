@@ -16,13 +16,23 @@
       </button>
     </div>
 
+    <!-- Skeleton loader -->
+    <div v-if="loading" class="skeleton">
+      <div class="skeleton-grid">
+        <div class="skeleton-card" v-for="i in 4" :key="i"></div>
+      </div>
+      <div class="skeleton-row" style="height:280px"></div>
+      <div class="skeleton-row" style="height:200px"></div>
+    </div>
+
     <!-- Section Analytics Global -->
-    <div class="dashboard-grid">
+    <transition name="fade" appear>
+    <div v-show="!loading" class="dashboard-grid">
       <!-- KPIs -->
       <div class="kpi-grid">
-        <div class="kpi-card" v-for="kpi in globalKpis" :key="kpi.id">
+        <div class="kpi-card glass-card" v-for="kpi in globalKpis" :key="kpi.id">
           <div class="kpi-icon" :style="{ background: kpi.color }">
-            {{ kpi.icon }}
+            <span v-html="kpi.icon"></span>
           </div>
           <div class="kpi-content">
             <div class="kpi-label">{{ kpi.label }}</div>
@@ -36,13 +46,13 @@
 
       <!-- Charts -->
       <div class="charts-section">
-        <div class="chart-container">
+        <div class="chart-container glass-card">
           <h2 class="section-title">Trafic (7 jours)</h2>
-          <canvas ref="trafficChart"></canvas>
-          <div v-if="loading" class="loading">Chargement...</div>
+          <v-chart v-if="trafficOption" :option="trafficOption" autoresize style="height:280px" />
+          <div v-if="!trafficOption && !loading" class="empty-state">Aucune donnée de trafic</div>
         </div>
 
-        <div class="chart-container">
+        <div class="chart-container glass-card">
           <h2 class="section-title">Top Pages</h2>
           <div class="top-pages">
             <div class="top-page-item" v-for="(page, idx) in topPages" :key="idx">
@@ -64,7 +74,7 @@
       <div class="sites-section">
         <h2 class="section-title">Performances par Site</h2>
         <div class="sites-list">
-          <div class="site-card" v-for="site in sitesOverview" :key="site.siteName">
+          <div class="site-card glass-card" v-for="site in sitesOverview" :key="site.siteName">
             <div class="site-header">
               <div class="site-name">{{ site.siteName }}</div>
               <span class="site-status" :class="site.status">{{ site.statusLabel }}</span>
@@ -97,13 +107,21 @@
         </div>
       </div>
 
+      <!-- World Map -->
+      <div class="map-section">
+        <h2 class="section-title">Connectivité mondiale</h2>
+        <div class="map-card glass-card">
+          <WorldMap :api-base="apiBase" arc-color="#0ea5e9" dot-color="#6366f1" label-color="#64748b" />
+        </div>
+      </div>
+
       <!-- Sources Trafic -->
       <div class="sources-section">
-        <div class="chart-container sources-chart">
+        <div class="chart-container glass-card sources-chart">
           <h2 class="section-title">Sources de Trafic</h2>
-          <canvas ref="sourcesChart"></canvas>
+          <v-chart v-if="sourcesOption" :option="sourcesOption" autoresize style="height:280px" />
         </div>
-        <div class="chart-container sources-detail">
+        <div class="chart-container glass-card sources-detail">
           <h2 class="section-title">Répartition</h2>
           <div class="sources-grid">
             <div class="source-item" v-for="source in trafficSources" :key="source.name">
@@ -118,6 +136,7 @@
         </div>
       </div>
     </div>
+    </transition>
 
     <!-- Analysis History -->
     <div class="history-section" v-if="analysisHistory.length">
@@ -148,28 +167,36 @@
 
 <script setup>
 import { ref, onMounted, computed, onUnmounted } from 'vue'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart, PieChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent } from 'echarts/components'
+import VChart from 'vue-echarts'
 import AnalyticsService from '../services/AnalyticsService'
 import SitemapService from '../services/SitemapService'
+import WorldMap from '../components/WorldMap.vue'
+
+use([CanvasRenderer, LineChart, PieChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent])
+
+const apiBase = ''
 
 const loading = ref(true)
 const analyzing = ref(false)
-const trafficChart = ref(null)
-const sourcesChart = ref(null)
-let chartInstance = null
-let sourcesChartInstance = null
 let refreshInterval = null
 
 const topPages = ref([])
 const sitesOverview = ref([])
 const trafficSources = ref([])
 const analysisHistory = ref([])
+const trafficOption = ref(null)
+const sourcesOption = ref(null)
 
 const globalKpis = computed(() => [
   {
     id: 'pageviews',
     label: 'Total Pageviews',
     value: totalStats.value.pageviews.toLocaleString('fr-FR'),
-    icon: '▓',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
     color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     trend: '↑ 12% vs semaine',
     trendClass: 'trend-up'
@@ -178,7 +205,7 @@ const globalKpis = computed(() => [
     id: 'sessions',
     label: 'Sessions',
     value: totalStats.value.sessions.toLocaleString('fr-FR'),
-    icon: '◆',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
     color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
     trend: '↑ 8% vs semaine',
     trendClass: 'trend-up'
@@ -187,7 +214,7 @@ const globalKpis = computed(() => [
     id: 'visitors',
     label: 'Visiteurs Uniques',
     value: totalStats.value.visitors.toLocaleString('fr-FR'),
-    icon: '●',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
     color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
     trend: '↑ 5% vs semaine',
     trendClass: 'trend-up'
@@ -196,7 +223,7 @@ const globalKpis = computed(() => [
     id: 'bounce',
     label: 'Bounce Rate',
     value: (totalStats.value.bounceRate * 100).toFixed(1) + '%',
-    icon: '▼',
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
     color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
     trend: '↓ 2% (amélioration)',
     trendClass: 'trend-down'
@@ -238,164 +265,190 @@ function formatDate(date) {
 async function loadDashboard() {
   loading.value = true
   try {
-    const [sitemaps, ] = await Promise.all([
-      SitemapService.list(),
-    ])
-
-    // Charger les stats pour chaque site
     const now = new Date()
     const from = new Date(now.getTime() - 7*24*3600*1000).toISOString()
     const to = now.toISOString()
 
-    if (Array.isArray(sitemaps) && sitemaps.length > 0) {
-      const siteStats = await Promise.all(
-        sitemaps.map(async site => {
-          try {
-            const [summary] = await Promise.all([
-              AnalyticsService.summary(from, to, site.siteName),
-              AnalyticsService.topPages(from, to, 5, site.siteName),
-              AnalyticsService.timeseries(from, to, site.siteName)
-            ])
-            
-            return {
-              siteName: site.siteName,
-              pageviews: summary.pageviews || 0,
-              sessions: summary.sessions || 0,
-              visitors: summary.visitors || 0,
-              bounceRate: ((summary.bounce_rate || 0) * 100).toFixed(1) + '%',
-              status: summary.pageviews > 0 ? 'active' : 'inactive',
-              statusLabel: summary.pageviews > 0 ? 'Actif' : 'Inactif',
-              lastUpdate: new Date().toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-            }
-          } catch (e) {
-            return {
-              siteName: site.siteName,
-              pageviews: 0,
-              sessions: 0,
-              visitors: 0,
-              bounceRate: '0%',
-              status: 'error',
-              statusLabel: 'Erreur',
-              lastUpdate: 'N/A'
-            }
-          }
-        })
-      )
-
-      sitesOverview.value = siteStats
-
-      if (siteStats.length > 0) {
-        const topPagesList = await AnalyticsService.topPages(from, to, 10, siteStats[0].siteName)
-        topPages.value = Array.isArray(topPagesList.items) ? topPagesList.items : []
-        const sources = await AnalyticsService.top('utm_source', from, to, 10, siteStats[0].siteName)
-        trafficSources.value = Array.isArray(sources.items) ? sources.items : []
-        try {
-          const history = await AnalyticsService.getAnalysisHistory(siteStats[0].siteName, 10)
-          analysisHistory.value = history.items || []
-        } catch (e) {
-          analysisHistory.value = []
-        }
-        await renderTrafficChart(from, to, siteStats[0].siteName)
-        await renderSourcesChart()
-      }
+    // Phase 1: Load sitemaps list (fast)
+    let sitemaps = []
+    try { sitemaps = await SitemapService.list() } catch (e) { sitemaps = [] }
+    if (!Array.isArray(sitemaps) || sitemaps.length === 0) {
+      loading.value = false
+      return
     }
+
+    const firstName = sitemaps[0].siteName
+
+    // Phase 2: Fire ALL requests in parallel — don't wait for one before the next
+    const [siteStatsResults, topPagesList, sourcesData, tsData, historyData] = await Promise.allSettled([
+      // Site summaries in parallel
+      Promise.all(sitemaps.map(site =>
+        AnalyticsService.summary(from, to, site.siteName)
+          .then(summary => ({
+            siteName: site.siteName,
+            pageviews: summary.pageviews || 0,
+            sessions: summary.sessions || 0,
+            visitors: summary.visitors || 0,
+            bounceRate: ((summary.bounce_rate || 0) * 100).toFixed(1) + '%',
+            status: summary.pageviews > 0 ? 'active' : 'inactive',
+            statusLabel: summary.pageviews > 0 ? 'Actif' : 'Inactif',
+            lastUpdate: new Date().toLocaleDateString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          }))
+          .catch(() => ({
+            siteName: site.siteName, pageviews: 0, sessions: 0, visitors: 0,
+            bounceRate: '0%', status: 'error', statusLabel: 'Erreur', lastUpdate: 'N/A'
+          }))
+      )),
+      // Top pages
+      AnalyticsService.topPages(from, to, 10, firstName).catch(() => ({ items: [] })),
+      // Sources
+      AnalyticsService.top('utm_source', from, to, 10, firstName).catch(() => ({ items: [] })),
+      // Timeseries
+      AnalyticsService.timeseries(from, to, firstName).catch(() => ({ items: [] })),
+      // History
+      AnalyticsService.getAnalysisHistory(firstName, 10).catch(() => ({ items: [] })),
+    ])
+
+    // Phase 3: Populate data as it arrives — loading false ASAP
+    loading.value = false
+
+    if (siteStatsResults.status === 'fulfilled') sitesOverview.value = siteStatsResults.value
+    if (topPagesList.status === 'fulfilled') topPages.value = Array.isArray(topPagesList.value.items) ? topPagesList.value.items : []
+    if (sourcesData.status === 'fulfilled') trafficSources.value = Array.isArray(sourcesData.value.items) ? sourcesData.value.items : []
+    if (historyData.status === 'fulfilled') analysisHistory.value = historyData.value.items || []
+
+    // Phase 4: Render charts from the parallel-fetched data
+    if (tsData.status === 'fulfilled') {
+      const items = Array.isArray(tsData.value.items) ? tsData.value.items : []
+      buildTrafficChart(items)
+    }
+    renderSourcesChart()
   } catch (e) {
     console.error('Dashboard error:', e)
-  } finally {
     loading.value = false
   }
 }
 
-async function renderTrafficChart(from, to, siteName) {
-  try {
-    const timeseries = await AnalyticsService.timeseries(from, to, siteName)
-    const items = Array.isArray(timeseries.items) ? timeseries.items : []
+function buildTrafficChart(items) {
+  if (!items || items.length === 0) return
+  const labels = items.map(i => new Date(i.ts).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }))
+  const pageviews = items.map(i => Number(i.pageviews || 0))
+  const sessions = items.map(i => Number(i.sessions || 0))
 
-    if (trafficChart.value && items.length > 0) {
-      const { default: Chart } = await import('chart.js/auto')
-      
-      if (chartInstance) chartInstance.destroy()
-
-      const labels = items.map(i => new Date(i.ts).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }))
-      const pageviews = items.map(i => Number(i.pageviews || 0))
-      const sessions = items.map(i => Number(i.sessions || 0))
-
-      chartInstance = new Chart(trafficChart.value.getContext('2d'), {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'Pageviews',
-              data: pageviews,
-              borderColor: '#667eea',
-              backgroundColor: 'rgba(102, 126, 234, 0.1)',
-              tension: 0.4,
-              fill: true
-            },
-            {
-              label: 'Sessions',
-              data: sessions,
-              borderColor: '#f5576c',
-              backgroundColor: 'rgba(245, 87, 108, 0.1)',
-              tension: 0.4,
-              fill: true
-            }
-          ]
+  trafficOption.value = {
+    tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(255,255,255,0.9)',
+          borderColor: '#e2e8f0',
+          borderWidth: 1,
+          textStyle: { color: '#334155', fontSize: 12 },
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: { display: true, position: 'bottom' }
+        legend: {
+          data: ['Pageviews', 'Sessions'],
+          bottom: 0,
+          textStyle: { color: '#64748b' },
+          icon: 'roundRect',
+        },
+        grid: { top: 10, right: 16, bottom: 40, left: 50, containLabel: false },
+        xAxis: {
+          type: 'category',
+          data: labels,
+          axisLine: { lineStyle: { color: '#e2e8f0' } },
+          axisLabel: { color: '#94a3b8', fontSize: 11 },
+          boundaryGap: false,
+        },
+        yAxis: {
+          type: 'value',
+          splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } },
+          axisLabel: { color: '#94a3b8', fontSize: 11 },
+        },
+        series: [
+          {
+            name: 'Pageviews',
+            type: 'line',
+            data: pageviews,
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: { width: 2.5, color: '#667eea' },
+            itemStyle: { color: '#667eea' },
+            areaStyle: {
+              color: {
+                type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(102,126,234,0.35)' },
+                  { offset: 1, color: 'rgba(102,126,234,0.02)' },
+                ],
+              },
+            },
           },
-          scales: {
-            y: { beginAtZero: true }
-          }
-        }
-      })
-    }
-  } catch (e) {
-    console.error('Traffic chart error:', e)
-  }
+          {
+            name: 'Sessions',
+            type: 'line',
+            data: sessions,
+            smooth: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: { width: 2.5, color: '#f5576c' },
+            itemStyle: { color: '#f5576c' },
+            areaStyle: {
+              color: {
+                type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(245,87,108,0.30)' },
+                  { offset: 1, color: 'rgba(245,87,108,0.02)' },
+                ],
+              },
+            },
+          },
+        ],
+      }
 }
 
-async function renderSourcesChart() {
-  try {
-    if (trafficSources.value.length === 0) return
+function renderSourcesChart() {
+  if (trafficSources.value.length === 0) return
 
-    if (sourcesChart.value) {
-      const { default: Chart } = await import('chart.js/auto')
-      
-      if (sourcesChartInstance) sourcesChartInstance.destroy()
+  const labels = trafficSources.value.map(s => s.name || 'Unknown')
+    const data = trafficSources.value.map((s, i) => ({
+      name: labels[i],
+      value: Number(s.hits || 0),
+    }))
+    const colors = ['#667eea', '#f5576c', '#43e97b', '#4facfe', '#f093fb', '#fbbf24', '#34d399', '#a78bfa']
 
-      const labels = trafficSources.value.map(s => s.name || 'Unknown')
-      const data = trafficSources.value.map(s => Number(s.hits || 0))
-      const colors = ['#667eea', '#f5576c', '#43e97b', '#4facfe', '#f093fb', '#667eea', '#f5576c', '#43e97b']
-
-      sourcesChartInstance = new Chart(sourcesChart.value.getContext('2d'), {
-        type: 'doughnut',
-        data: {
-          labels,
-          datasets: [{
-            data,
-            backgroundColor: colors.slice(0, labels.length),
-            borderColor: '#fff',
-            borderWidth: 2
-          }]
+    sourcesOption.value = {
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        textStyle: { color: '#334155', fontSize: 12 },
+        formatter: '{b}: {c} ({d}%)',
+      },
+      legend: {
+        orient: 'vertical',
+        right: 10,
+        top: 'center',
+        textStyle: { color: '#64748b', fontSize: 12 },
+        icon: 'circle',
+      },
+      color: colors,
+      series: [
+        {
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['40%', '50%'],
+          avoidLabelOverlap: true,
+          padAngle: 3,
+          itemStyle: { borderRadius: 8, borderColor: '#fff', borderWidth: 2 },
+          label: { show: false },
+          emphasis: {
+            label: { show: true, fontSize: 14, fontWeight: 'bold' },
+            itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.2)' },
+          },
+          data,
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: { display: true, position: 'right' }
-          }
-        }
-      })
+      ],
     }
-  } catch (e) {
-    console.error('Sources chart error:', e)
-  }
 }
 
 async function triggerAnalysis() {
@@ -428,11 +481,26 @@ onUnmounted(() => {
 }
 
 .page-container {
-  padding: 6rem 2rem 2rem;
-  max-width: 1400px;
+  padding: 88px 24px 120px;
+  max-width: 1200px;
   margin: 0 auto;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 50%, #f0fdfa 100%);
   min-height: 100vh;
+}
+
+/* ── Glassmorphism card ─────────────────────────────────── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255,255,255,0.5);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255,255,255,0.6);
 }
 
 /* Header */
@@ -523,18 +591,15 @@ onUnmounted(() => {
 }
 
 .kpi-card {
-  background: white;
-  border-radius: 15px;
+  border-radius: 16px;
   padding: 1.5rem;
   display: flex;
   gap: 1rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
 }
 
 .kpi-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
 }
 
 .kpi-icon {
@@ -585,10 +650,8 @@ onUnmounted(() => {
 }
 
 .chart-container {
-  background: white;
-  border-radius: 15px;
+  border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .section-title {
@@ -689,18 +752,15 @@ onUnmounted(() => {
 }
 
 .site-card {
-  background: white;
-  border-radius: 15px;
+  border-radius: 16px;
   padding: 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
+  border: 1px solid rgba(255,255,255,0.5);
 }
 
 .site-card:hover {
   transform: translateY(-4px);
-  border-color: #667eea;
-  box-shadow: 0 8px 30px rgba(102, 126, 234, 0.2);
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
 }
 
 .site-header {
@@ -808,10 +868,10 @@ onUnmounted(() => {
 }
 
 .source-item {
-  background: white;
+  background: rgba(255,255,255,0.5);
   border-radius: 12px;
   padding: 1rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(8px);
 }
 
 .source-name {
@@ -842,10 +902,12 @@ onUnmounted(() => {
 }
 
 .history-table {
-  background: white;
-  border-radius: 15px;
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(16px);
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
 .history-header,
@@ -911,6 +973,17 @@ onUnmounted(() => {
   color: #2c5282;
 }
 
+/* Map Section */
+.map-section {
+  grid-column: 1 / -1;
+}
+
+.map-card {
+  border-radius: 16px;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
 /* Empty State */
 .empty-state {
   grid-column: 1 / -1;
@@ -954,4 +1027,15 @@ onUnmounted(() => {
     padding: 0.75rem 1rem;
   }
 }
+
+/* ── Skeleton loader ──────────────────────────────── */
+.skeleton { display: grid; gap: 1.5rem; }
+.skeleton-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.skeleton-card { height: 110px; border-radius: 16px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.4s ease infinite; }
+.skeleton-row { border-radius: 16px; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.4s ease infinite; }
+@keyframes shimmer { 0% { background-position: 200% 0 } 100% { background-position: -200% 0 } }
+
+/* ── Fade transition ──────────────────────────────── */
+.fade-enter-active { transition: opacity 0.4s ease, transform 0.4s ease; }
+.fade-enter-from { opacity: 0; transform: translateY(12px); }
 </style>

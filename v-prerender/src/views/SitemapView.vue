@@ -1,81 +1,106 @@
 <template>
     <div class="app-wrapper">
       <div class="page-container">
-        
-        <div class="input-group">
-          <input
-            placeholder="Entrez votre site"
-            class="input"
-            name="text"
-            type="text"
-            v-model="url"
-            :disabled="isLoading"
-          />
-          <GlassGenerateButton class="btn-add-legacy" :disabled="isLoading" size="1.0rem" @click="addSitemap">Ajouter</GlassGenerateButton>
-        </div>
-        <div v-if="error" class="error-message">{{ error }}</div>
+
+        <!-- ── Hero section: titre + Globe ──────────────────── -->
+        <section class="hero-section">
+          <div class="hero-text">
+            <span class="badge-live"><span class="live-dot"></span> Temps réel</span>
+            <h1 class="hero-title">Vos sites<br /><span class="accent">dans le monde</span></h1>
+            <p class="hero-sub">{{ statsText }}</p>
+          </div>
+          <div class="hero-globe">
+            <Globe3D :api-base="apiBase" :size="500" :dark="true" :auto-rotate="true" />
+          </div>
+        </section>
+
+        <!-- ── Ajouter un site ──────────────────────────────── -->
+        <section class="add-section glow-card glow-card--subtle">
+          <div class="add-inner">
+            <input
+              placeholder="Entrez l'URL de votre site"
+              class="input"
+              name="text"
+              type="text"
+              v-model="url"
+              :disabled="isLoading"
+              @keyup.enter="addSitemap"
+            />
+            <NoiseButton :disabled="isLoading" @click="addSitemap">Ajouter</NoiseButton>
+          </div>
+          <div v-if="error" class="error-message">{{ error }}</div>
+        </section>
   
-        <div class="sitemap-list">
+        <!-- ── Liste des sitemaps ────────────────────────────── -->
+        <section class="sitemap-list">
+          <div class="section-header">
+            <h2 class="section-title">Sites surveillés</h2>
+            <span class="site-count" v-if="sitemaps.length">{{ sitemaps.length }} site{{ sitemaps.length > 1 ? 's' : '' }}</span>
+          </div>
           <div class="table" ref="tableEl">
             <div class="card-list">
-              <GlassSurface v-for="(item, idx) in sitemaps" :key="idx" rootClass="sitemap-card premium-glass">
-                <div class="card-left">
-                  <div class="site-info">
-                    <div class="site-topline">
-                      <span class="site-name">
-                        <span class="site-proto">{{ splitSite(item.siteName).proto }}</span><span class="site-domain">{{ splitSite(item.siteName).host }}</span>
-                      </span>
-                      <span v-if="isStale(summaryBySite[item.siteName]?.lastmodLatest)" class="badge badge-stale">Obsolète</span>
-                      <span v-else class="badge badge-healthy">Sain</span>
-                    </div>
-                    <div class="site-meta">
-                      <span class="meta-item">{{ pageCount(item) }} URLs</span>
-                      <span class="dot">•</span>
-                      <span class="meta-item">{{ translateChangefreq(topChangefreq(summaryBySite[item.siteName]?.changefreqCounts)) }}</span>
-                      <span class="dot">•</span>
-                      <span class="meta-item">MAJ: {{ formatDate(summaryBySite[item.siteName]?.lastmodLatest) }}</span>
+              <div v-for="(item, idx) in sitemaps" :key="idx" class="sitemap-card glow-card glow-card--subtle">
+                <div class="card-inner">
+                  <div class="card-left">
+                    <div class="site-info">
+                      <div class="site-topline">
+                        <span class="site-name">
+                          <span class="site-proto">{{ splitSite(item.siteName).proto }}</span><span class="site-domain">{{ splitSite(item.siteName).host }}</span>
+                        </span>
+                        <span v-if="isStale(summaryBySite[item.siteName]?.lastmodLatest)" class="badge badge-stale">Obsolète</span>
+                        <span v-else class="badge badge-healthy">Sain</span>
+                      </div>
+                      <div class="site-meta">
+                        <span class="meta-item">{{ pageCount(item) }} URLs</span>
+                        <span class="dot">•</span>
+                        <span class="meta-item">{{ translateChangefreq(topChangefreq(summaryBySite[item.siteName]?.changefreqCounts)) }}</span>
+                        <span class="dot">•</span>
+                        <span class="meta-item">MAJ: {{ formatDate(summaryBySite[item.siteName]?.lastmodLatest) }}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div class="card-center">
-                  <div class="metric">
-                    <div class="metric-label">Dernier scan</div>
-                    <div class="metric-value">{{ formatDate(summaryBySite[item.siteName]?.lastCrawl) }}</div>
+                  <div class="card-center">
+                    <div class="metric">
+                      <div class="metric-label">Dernier scan</div>
+                      <div class="metric-value">{{ formatDate(summaryBySite[item.siteName]?.lastCrawl) }}</div>
+                    </div>
+                  </div>
+                  <div class="card-actions">
+                    <button class="action-btn" @click="openSiteSummary(item)">Détails</button>
+                    <button class="action-btn" :disabled="!!refreshing[item.siteName]" @click="refreshSitemap(item.siteName)">{{ refreshing[item.siteName] ? 'Analyse…' : 'Analyser' }}</button>
+                    <button class="delete-btn" @click="deleteSitemap(item.siteName)">
+                      <svg class="svgIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                    </button>
                   </div>
                 </div>
-                <div class="card-actions">
-                  <button class="action-btn" @click="openSiteSummary(item)">Détails</button>
-                  <button class="action-btn" :disabled="!!refreshing[item.siteName]" @click="refreshSitemap(item.siteName)">{{ refreshing[item.siteName] ? 'Analyse…' : 'Analyser' }}</button>
-                  <button class="delete-btn" @click="deleteSitemap(item.siteName)">
-                    <HiTrash class="svgIcon" />
-                  </button>
-                </div>
-              </GlassSurface>
+              </div>
 
-              <div v-if="sitemaps.length === 0" class="empty-state">Aucun sitemap ajouté</div>
+              <div v-if="sitemaps.length === 0" class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                <p>Aucun sitemap ajouté</p>
+                <span>Entrez une URL ci-dessus pour commencer</span>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
-  
-      
     </div>
   </template>
 
   <script setup>
-  import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+  import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
   import gsap from 'gsap'
   import { useRouter } from 'vue-router'
   import axios from 'axios'
-  import GlassSurface from '../components/vendor/GlassSurface.vue'
-  import GlassGenerateButton from '../components/GlassGenerateButton.vue'
-  import { HiTrash } from 'react-icons/hi'
+  import NoiseButton from '../components/NoiseButton.vue'
+  import Globe3D from '../components/Globe3D.vue'
   
   
   const API_URL = (['localhost','127.0.0.1'].includes(window.location.hostname)
     ? '/api'
     : ((import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_URL) || '/api'))
   const API_BASE = ref(API_URL)
+  const apiBase = ''
   
   const url = ref('')
   const sitemaps = ref([])
@@ -84,6 +109,11 @@
   const router = useRouter()
   const summaryBySite = ref({})
   const refreshing = ref({})
+
+  const statsText = computed(() => {
+    if (sitemaps.value.length === 0) return 'Ajoutez un site pour le voir apparaître sur le globe.'
+    return `${sitemaps.value.length} site${sitemaps.value.length > 1 ? 's' : ''} surveillé${sitemaps.value.length > 1 ? 's' : ''}`
+  })
 
   // Star-border responsive sizing
   const tableEl = ref(null)
@@ -277,269 +307,294 @@
   </script>
   
   <style scoped>
+
   .app-wrapper {
-    background: transparent;
+    background: #ffffff;
     min-height: 100vh;
-    font-family: Arial, sans-serif;
-    position: relative;
-    overflow: hidden;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
-  /* Ancien fond supprimé pour éviter tout conflit visuel */
-  
   .page-container {
-    padding: 6rem 2rem 2rem;
-    max-width: 1200px;
+    padding: 88px 24px 120px;
+    max-width: 1100px;
     margin: 0 auto;
-    position: relative;
-    z-index: 2; /* above animated backgrounds (Stars z=1, ColorBends z=0) */
   }
 
-  /* Subtabs removed: Navbar handles section navigation */
-  
-  .main-title {
-    font-size: 2rem;
-    margin-bottom: 2rem;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-    color: #0f172a;
-  }
-
-  /* Reusable green→violet gradient text */
-  .gradient-text {
-    color: #0f172a;
-  }
-
-  .badge {
-    display: inline-block;
-    margin-left: 8px;
-    padding: 2px 6px;
-    font-size: 12px;
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.2);
-  }
-  .badge-stale {
-    color: #ffb3b3;
-    border-color: #ff6b6b;
-  }
-  
-  .section-title {
-    font-size: 1.2rem;
-    color: #334155;
-    margin-bottom: 1rem;
-  }
-  
-  .input-group {
+  /* ── Hero section ────────────────────────────────────────── */
+  .hero-section {
     display: flex;
-    gap: 1rem;
-    margin-bottom: 2rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+    margin-bottom: 48px;
+  }
+
+  .hero-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .badge-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(16,185,129,0.08);
+    color: #059669;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(16,185,129,0.2);
+    margin-bottom: 16px;
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.4); }
+  }
+
+  .hero-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #0f172a;
+    margin: 0 0 12px;
+    letter-spacing: -0.03em;
+  }
+
+  .hero-title .accent {
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-sub {
+    color: #64748b;
+    font-size: 1rem;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .hero-globe {
+    flex-shrink: 0;
+    width: 520px;
+    height: 520px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Add section ─────────────────────────────────────────── */
+  .add-section {
+    margin-bottom: 32px;
+    padding: 20px 24px;
+    border-radius: 16px;
+    background: rgba(248,250,252,0.9);
+  }
+
+  .add-inner {
+    display: flex;
+    gap: 12px;
     align-items: center;
   }
-  
+
   .input {
-    color: #111;
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 14px;
-    padding: 10px 14px;
-    background: var(--glass-tint, rgba(255,255,255,0.04));
-    backdrop-filter: blur(32px) saturate(280%) brightness(1.6);
-    -webkit-backdrop-filter: blur(32px) saturate(280%) brightness(1.6);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
-    max-width: 260px;
+    flex: 1;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0 16px;
+    background: #ffffff;
     height: 44px;
+    font-size: 0.925rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
   .input::placeholder { color: #94a3b8; }
-  
-  .input:active {
-    box-shadow: none;
-  }
-  
   .input:focus {
     outline: none;
-    border-color: rgba(139,92,246,0.5);
-    box-shadow: 0 0 0 3px rgba(139,92,246,0.25);
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
   }
-  
-  .input:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+  .input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .error-message {
+    color: #dc2626;
+    margin-top: 8px;
+    font-size: 0.875rem;
   }
-  
-  .btn-add {
-    font-size: 15px;
-    padding: 12px 16px;
-    letter-spacing: 0.02em;
-    position: relative;
-    font-family: inherit;
-    border-radius: 12px;
-    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    line-height: 20px;
-    border: 1px solid rgba(255,255,255,0.18);
-    background: var(--glass-tint, rgba(255,255,255,0.04));
-    color: #111;
-    backdrop-filter: blur(32px) saturate(280%) brightness(1.6);
-    -webkit-backdrop-filter: blur(32px) saturate(280%) brightness(1.6);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
-    height: 44px;
+
+  /* ── Section header ──────────────────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
   }
-  
-  .btn-add:not(:disabled):hover { background: rgba(255,255,255,0.14); color: #fff; border-color: var(--accent-border); }
-  
-  .btn-add:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
+
+  .section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
   }
-  
-  .btn-add:before {
-    content: none;
+
+  .site-count {
+    font-size: 0.8rem;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 500;
   }
-  
-  .btn-add:not(:disabled):hover:before {
-    transform: none;
-  }
-  
+
+  /* ── Sitemap list ────────────────────────────────────────── */
+  .sitemap-list { margin-bottom: 24px; }
   .table { border: none; background: transparent; box-shadow: none; padding: 0; }
   .table::before, .table::after { content: none; }
+  .card-list { display: grid; gap: 12px; }
 
-  /* Card list */
-
-  .sitemap-list { display: flex; justify-content: center; }
-  .card-list { display: grid; gap: 12px; width: min(860px, 100%); }
-  .sitemap-card { padding: 0; border-radius: 16px; }
-  
-  /* Premium glass cards - ultra-transparent Apple style */
-  :deep(.sitemap-card.premium-glass.glass-surface--svg),
-  :deep(.sitemap-card.premium-glass.glass-surface--fallback) {
-    background: var(--glass-tint, rgba(255,255,255,0.04)) !important;
-    border: 1px solid rgba(255,255,255,0.18) !important;
-    backdrop-filter: blur(32px) saturate(280%) brightness(1.6) !important;
-    -webkit-backdrop-filter: blur(32px) saturate(280%) brightness(1.6) !important;
-    box-shadow: inset 0 1px 2px rgba(255,255,255,0.45), 0 16px 48px rgba(0,0,0,0.12) !important;
+  .sitemap-card {
+    border-radius: 16px;
+    background: rgba(248,250,252,0.92);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
-  
-  :deep(.sitemap-card .glass-surface__content) {
+
+  .sitemap-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  }
+
+  .card-inner {
     display: grid;
-    grid-template-columns: 1.7fr 1.1fr auto;
+    grid-template-columns: 1.7fr 1fr auto;
     align-items: center;
     gap: 16px;
-    padding: 16px 18px;
-  }
-  .sitemap-card .metric-label { color: #64748b; }
-  .sitemap-card .metric-value { color: #0f172a; }
-  .sitemap-card .site-meta { color: #475569; }
-  .sitemap-card .site-name { color: #0f172a; }
-  .sitemap-card:hover {
-    transform: translateY(-3px);
-    box-shadow: none;
+    padding: 16px 20px;
   }
 
   .card-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
   .site-info { min-width: 0; }
   .site-topline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .site-meta { display: flex; flex-wrap: wrap; gap: 8px; color: #475569; font-size: 0.9rem; margin-top: 4px; }
+  .site-name { font-weight: 600; }
+  .site-proto { color: #94a3b8; font-size: 0.9rem; }
+  .site-domain { color: #0f172a; font-size: 0.95rem; }
+
+  .site-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    color: #64748b;
+    font-size: 0.825rem;
+    margin-top: 4px;
+  }
   .site-meta .dot { color: #cbd5e1; }
 
-  .card-center { display: flex; gap: 24px; align-items: center; justify-content: flex-start; }
-  .metric-label { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
-  .metric-value { color: #334155; font-size: 0.95rem; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .badge-stale {
+    color: #dc2626;
+    background: rgba(220,38,38,0.08);
+    border: 1px solid rgba(220,38,38,0.2);
+  }
+  .badge-healthy {
+    color: #059669;
+    background: rgba(16,185,129,0.08);
+    border: 1px solid rgba(16,185,129,0.2);
+  }
+
+  .card-center { display: flex; gap: 24px; align-items: center; }
+  .metric-label { color: #94a3b8; font-size: 0.7rem; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+  .metric-value { color: #334155; font-size: 0.9rem; font-weight: 500; }
 
   .card-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
-  @keyframes pixelDrift { }
-  @keyframes sweepBar { }
-  
-  /* Base style for action buttons (Voir, Recharger) matching delete icon */
   .action-btn {
     background: #ffffff;
-    border: 1px solid #e5e7eb;
-    color: #0f172a;
-    padding: 0.5rem 0.9rem;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    padding: 8px 14px;
     border-radius: 10px;
     cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    font-size: 0.825rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
   }
+  .action-btn:hover { background: #f8fafc; border-color: #0ea5e9; color: #0ea5e9; }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .action-btn:hover { background: #f8fafc; border-color: var(--accent-border); color: #0f172a; }
-  .action-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-  
   .delete-btn {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid #ef4444;
+    background: #fff;
+    border: 1px solid #fecaca;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
+    transition: all 0.15s ease;
     padding: 0;
   }
-  
-  .delete-btn:hover { background: rgba(255,255,255,0.14); border-color: #ef4444; }
-  
-  .svgIcon {
-    width: 16px;
-    height: 16px;
-    transition: all 0.3s;
-    color: #ef4444;
-  }
-  
-  .delete-btn:hover .svgIcon {
-    color: #b91c1c;
-  }
-  
-  .error-message {
-    color: #dc2626;
-    margin-top: 0.5rem;
-  }
-  
-  .modal h3 {
-    color: #0f172a;
-    margin-bottom: 1.5rem;
-  }
-  
-  .urls-list {
-    margin-bottom: 1.5rem;
-  }
-  
-  .url-item {
-    padding: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .url-loc {
-    color: #0369a1;
-    margin-bottom: 0.5rem;
-  }
-  
-  .url-details {
+  .delete-btn:hover { background: #fef2f2; border-color: #ef4444; }
+  .svgIcon { width: 16px; height: 16px; color: #ef4444; }
+  .delete-btn:hover .svgIcon { color: #b91c1c; }
+
+  /* ── Empty state ─────────────────────────────────────────── */
+  .empty-state {
     display: flex;
-    gap: 1rem;
-    color: #475569;
-    font-size: 0.9rem;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 48px 24px;
+    color: #94a3b8;
+    text-align: center;
   }
-  
-  /* Emphasis colors for key values */
-  .site-name {
-    font-weight: 600;
-  }
-  .site-proto { color: #9ca3af; } /* gray-400 */
-  .site-domain { color: #8b5cf6; } /* violet */
-  .pages-count {
-    color: #8b5cf6; /* brand violet */
-    font-weight: 700;
-    font-variant-numeric: tabular-nums; /* aligned digits */
-  }
-  .date-text {
-    color: #8b5cf6; /* brand violet */
-    font-weight: 600;
+  .empty-state p { margin: 0; font-size: 1rem; font-weight: 500; color: #64748b; }
+  .empty-state span { font-size: 0.85rem; }
+
+  /* ── Glowing card override for after-bg ──────────────────── */
+  .glow-card::after {
+    background: rgba(248,250,252,0.95);
   }
 
-  /* Adapter le bouton GlassGenerateButton à 44px ici */
-  :deep(.btn-add-legacy.btn-wrapper) { font-size: 1rem; }
-  :deep(.btn-add-legacy .button) { height: 44px; display: inline-flex; align-items: center; }
-  :deep(.btn-add-legacy .span) { padding-inline: 18px; }
+  /* ── Responsive ──────────────────────────────────────────── */
+  @media (max-width: 768px) {
+    .hero-section {
+      flex-direction: column;
+      text-align: center;
+      gap: 24px;
+    }
+    .hero-globe {
+      width: 280px;
+      height: 280px;
+    }
+    .hero-title { font-size: 1.75rem; }
+    .card-inner {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .card-actions { justify-content: flex-start; }
+    .page-container { padding: 80px 16px 100px; }
+  }
 </style>

@@ -6,6 +6,11 @@ Thumbs.db
 .vscode/
 .idea/
 *.code-workspace
+.claude/
+
+# Documents confidentiels
+DEVIS_*.html
+PROPOSITION_*.html
 
 # Node
 node_modules/

@@ -4,16 +4,16 @@
       rootClass="dock-list premium-glass"
       :borderRadius="16"
       :borderWidth="0.07"
-      :brightness="50"
-      :opacity="0.9"
-      :blur="8"
-      :displace="0.5"
-      :backgroundOpacity="0.2"
-      :saturation="1"
-      :distortionScale="-60"
+      :brightness="40"
+      :opacity="0.75"
+      :blur="14"
+      :displace="0.8"
+      :backgroundOpacity="0.06"
+      :saturation="1.2"
+      :distortionScale="-120"
       :redOffset="0"
-      :greenOffset="10"
-      :blueOffset="20"
+      :greenOffset="12"
+      :blueOffset="24"
       xChannel="R"
       yChannel="G"
       mixBlendMode="normal"
@@ -27,9 +27,7 @@
            @click.prevent="go(it.to)"
            :aria-label="it.label">
           <span class="glow" :class="'tone-' + (it.tone || 'violet')"></span>
-          <span class="icon">
-            <component :is="it.icon" size="22" />
-          </span>
+          <span class="icon" v-html="it.icon"></span>
         </a>
         <span v-if="hoverIdx === i" class="tooltip">{{ it.label }}</span>
       </li>
@@ -42,43 +40,23 @@
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import GlassSurface from './vendor/GlassSurface.vue'
-import { HiHome, HiViewGrid, HiChartBar, HiCog } from 'react-icons/hi'
 
 const route = useRoute()
 const router = useRouter()
 const hoverIdx = ref(-1)
 function go(name){ router.push({ name }) }
 
-// Menu items with React icons
+// SVG icons (Heroicons solid style, 22x22)
+const iconHome = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="22" height="22"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>'
+const iconGrid = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="22" height="22"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>'
+const iconChart = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="22" height="22"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>'
+const iconCog = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="22" height="22"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>'
+
 const items = [
-  {
-    name: 'home',
-    label: 'Sitemaps',
-    to: 'home',
-    tone: 'blue',
-    icon: HiHome
-  },
-  {
-    name: 'dashboard',
-    label: 'Dashboard',
-    to: 'dashboard',
-    tone: 'violet',
-    icon: HiViewGrid
-  },
-  {
-    name: 'analytics',
-    label: 'Analytics',
-    to: 'analytics',
-    tone: 'green',
-    icon: HiChartBar
-  },
-  {
-    name: 'settings',
-    label: 'Réglages',
-    to: 'home',
-    tone: 'orange',
-    icon: HiCog
-  }
+  { name: 'home', label: 'Sitemaps', to: 'home', tone: 'blue', icon: iconHome },
+  { name: 'dashboard', label: 'Dashboard', to: 'dashboard', tone: 'violet', icon: iconGrid },
+  { name: 'analytics', label: 'Analytics', to: 'analytics', tone: 'green', icon: iconChart },
+  { name: 'settings', label: 'Réglages', to: 'home', tone: 'orange', icon: iconCog }
 ]
 </script>
 
@@ -148,7 +126,7 @@ const items = [
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  color: #e5e7eb;
+  color: #3b82f6;
   overflow: hidden;
   transition: transform .15s ease, border-color .2s ease, color .2s ease, background-color .2s ease, box-shadow .2s ease;
 }

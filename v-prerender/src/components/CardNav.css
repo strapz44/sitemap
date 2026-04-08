@@ -1,28 +1,27 @@
 .card-nav-container {
-  position: absolute;
-  top: 2em;
+  position: fixed;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 90%;
-  max-width: 800px;
-  z-index: 99;
+  width: 100%;
+  max-width: 900px;
+  z-index: 9999;
   box-sizing: border-box;
+  padding: 12px 16px 0;
 }
 
 .card-nav {
   display: block;
   height: 60px;
   padding: 0;
-  /* ultra-transparent apple-style glass with pure blur effect */
-  background: rgba(255,255,255,0.06);
-  backdrop-filter: blur(32px) saturate(260%) brightness(1.5);
-  -webkit-backdrop-filter: blur(32px) saturate(260%) brightness(1.5);
-  border: 1px solid rgba(255, 255, 255, 0.20);
-  border-radius: 0.75rem;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 16px;
   box-shadow:
-    inset 0 1px 3px rgba(255,255,255,0.50),
-    inset 0 -1px 3px rgba(0,0,0,0.06),
-    0 8px 32px rgba(17,17,26,0.08);
+    0 1px 3px rgba(0,0,0,0.04),
+    0 8px 24px rgba(0,0,0,0.06);
   position: relative;
   overflow: hidden;
   will-change: height;
@@ -59,8 +58,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 0.45rem 0.55rem 1.1rem;
+  padding: 0 12px 0 16px;
   z-index: 2;
+  gap: 12px;
 }
 
 .hamburger-menu {
@@ -71,11 +71,36 @@
   justify-content: center;
   cursor: pointer;
   gap: 6px;
-  color: #111;
+  color: #1e293b;
 }
 
 .hamburger-menu:hover .hamburger-line {
   opacity: 0.75;
+}
+
+/* ── Inline navigation links (always visible in top bar) ── */
+.nav-inline-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+}
+
+.nav-inline-link {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #475569;
+  text-decoration: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.nav-inline-link:hover {
+  color: #0f172a;
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .hamburger-line {
@@ -119,27 +144,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.65);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 8px;
-  padding: 0 1.125rem;
-  height: 36px;
-  min-width: 100px;
+  background-color: #0f172a;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 0 1.25rem;
+  height: 38px;
+  min-width: 110px;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   cursor: pointer;
-  transition: background-color 0.3s ease, border-color 0.3s ease;
-  backdrop-filter: blur(8px);
+  transition: background-color 0.2s ease, transform 0.15s ease;
+  letter-spacing: 0.01em;
+  flex-shrink: 0;
 }
 
 .card-nav-cta-button:hover {
-  background-color: rgba(0, 0, 0, 0.65);
-  border-color: rgba(255, 255, 255, 0.35);
+  background-color: #1e293b;
+  transform: scale(1.02);
 }
 
 .card-nav-cta-button:active {
-  background-color: rgba(0, 0, 0, 0.75);
+  background-color: #0f172a;
+  transform: scale(0.98);
 }
 
 .card-nav-content {
@@ -166,24 +193,22 @@
   height: 100%;
   flex: 1 1 0;
   min-width: 0;
-  border-radius: calc(0.75rem - 0.2rem);
+  border-radius: 12px;
   position: relative;
   display: flex;
   flex-direction: column;
   padding: 12px 16px;
   gap: 8px;
   user-select: none;
-  /* glass surface for each card */
-  background-color: var(--nav-card-bg, rgba(255,255,255,0.28));
-  backdrop-filter: blur(10px) saturate(150%);
-  -webkit-backdrop-filter: blur(10px) saturate(150%);
-  border: 1px solid rgba(255,255,255,0.2);
+  background-color: var(--nav-card-bg, rgba(241,245,249,0.85));
+  border: 1px solid rgba(0,0,0,0.06);
 }
 
 .nav-card-label {
-  font-weight: 400;
-  font-size: 22px;
-  letter-spacing: -0.5px;
+  font-weight: 600;
+  font-size: 18px;
+  letter-spacing: -0.3px;
+  color: #1e293b;
 }
 
 .nav-card-links {
@@ -194,23 +219,26 @@
 }
 
 .nav-card-link {
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   text-decoration: none;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease, color 0.2s ease;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  color: #475569;
+  font-weight: 500;
 }
 
 .nav-card-link-icon {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
 }
 
 .nav-card-link:hover {
-  opacity: 0.75;
+  opacity: 0.7;
+  color: #0ea5e9;
 }
 
 @media (max-width: 768px) {
@@ -226,6 +254,10 @@
 
   .hamburger-menu {
     order: 2;
+  }
+
+  .nav-inline-links {
+    display: none;
   }
 
   .logo-container {

@@ -1,56 +1,22 @@
-const crypto = require('crypto')
-const { getPool, ensureSchema } = require('../_db')
+const { getDb } = require('../_mongo')
 const { setCors, handlePreflight } = require('../_cors')
-const { signToken, setAuthCookie } = require('../_tokens')
-
-function readBody(req) {
-  return new Promise(resolve => {
-    let data = ''
-    req.on('data', c => { data += c })
-    req.on('end', () => {
-      const ct = (req.headers['content-type'] || '').toLowerCase()
-      if (ct.includes('application/json')) {
-        try { resolve(JSON.parse(data || '{}')) } catch { resolve({}) }
-      } else if (ct.includes('application/x-www-form-urlencoded')) {
-        const params = new URLSearchParams(data)
-        const obj = {}; for (const [k, v] of params.entries()) obj[k] = v
-        resolve(obj)
-      } else { resolve({}) }
-    })
-  })
-}
-
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email || '').toString())
-}
-
-function scryptAsync(password, salt, len = 32) {
-  return new Promise((resolve, reject) => {
-    crypto.scrypt(password, salt, len, (err, dk) => err ? reject(err) : resolve(dk))
-  })
-}
-
-async function hashPassword(password) {
-  const salt = crypto.randomBytes(16)
-  const hash = await scryptAsync(password, salt, 32)
-  return `s2$${salt.toString('hex')}$${hash.toString('hex')}`
-}
+const { signToken, setAuthCookie, generateRefreshToken, setRefreshCookie, ACCESS_TTL, REFRESH_TTL } = require('../_tokens')
+const { readBody, hashPassword, isValidEmail, sanitizeUser } = require('../_authHelpers')
+const { rateLimit } = require('../_rateLimit')
 
 module.exports = async (req, res) => {
   const allowed = setCors(req, res)
-  if (req.method === 'OPTIONS') { return handlePreflight(req, res) }
+  if (req.method === 'OPTIONS') return handlePreflight(req, res)
   if (!allowed) { res.statusCode = 403; return res.end('Origin not allowed') }
-
   if (req.method !== 'POST') { res.statusCode = 405; return res.end('Method Not Allowed') }
 
-  if (!(process.env.POSTGRES_URL || process.env.DATABASE_URL)) {
-    res.statusCode = 503
-    res.setHeader('Content-Type','application/json')
-    return res.end(JSON.stringify({ ok:false, error:'db_not_configured' }))
+  // Rate limit
+  const rl = rateLimit({ keyPrefix: 'register', limit: 5, windowMs: 60 * 60 * 1000 }, req)
+  if (!rl.ok) {
+    res.statusCode = 429; res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Retry-After', String(rl.retryAfterSec))
+    return res.end(JSON.stringify({ ok: false, error: 'rate_limited', retryAfter: rl.retryAfterSec }))
   }
-
-  await ensureSchema()
-  const pool = getPool()
 
   const body = await readBody(req)
   const email = (body.email || '').toString().trim()
@@ -58,30 +24,68 @@ module.exports = async (req, res) => {
   const name = (body.name || '').toString().trim() || null
 
   if (!isValidEmail(email)) {
-    res.statusCode = 400; res.setHeader('Content-Type','application/json')
-    return res.end(JSON.stringify({ ok:false, error:'invalid_email' }))
+    res.statusCode = 400; res.setHeader('Content-Type', 'application/json')
+    return res.end(JSON.stringify({ ok: false, error: 'invalid_email' }))
   }
   if (!password || password.length < 8) {
-    res.statusCode = 400; res.setHeader('Content-Type','application/json')
-    return res.end(JSON.stringify({ ok:false, error:'weak_password' }))
+    res.statusCode = 400; res.setHeader('Content-Type', 'application/json')
+    return res.end(JSON.stringify({ ok: false, error: 'weak_password', message: 'Le mot de passe doit contenir au moins 8 caractères' }))
+  }
+  // Password strength: at least 1 uppercase, 1 lowercase, 1 digit
+  if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+    res.statusCode = 400; res.setHeader('Content-Type', 'application/json')
+    return res.end(JSON.stringify({ ok: false, error: 'weak_password', message: 'Le mot de passe doit contenir majuscule, minuscule et chiffre' }))
   }
 
   try {
-    const { rows: existing } = await pool.query('select id from users where lower(email) = lower($1) limit 1', [email])
-    if (existing.length) { res.statusCode = 409; res.setHeader('Content-Type','application/json'); return res.end(JSON.stringify({ ok:false, error:'email_taken' })) }
+    const db = await getDb()
+    const users = db.collection('users')
+
+    // Check duplicate (case-insensitive)
+    const existing = await users.findOne({ email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } })
+    if (existing) {
+      res.statusCode = 409; res.setHeader('Content-Type', 'application/json')
+      return res.end(JSON.stringify({ ok: false, error: 'email_taken' }))
+    }
 
     const password_hash = await hashPassword(password)
-    const { rows } = await pool.query('insert into users (email, password_hash, name) values ($1,$2,$3) returning id, email, name', [email, password_hash, name])
-    const user = rows[0]
+    const now = new Date()
+    const result = await users.insertOne({
+      email: email.toLowerCase(),
+      password_hash,
+      name,
+      twoFactor: { enabled: false, secret: null, backupCodes: [] },
+      lastLogin: now,
+      loginCount: 1,
+      createdAt: now,
+      updatedAt: now,
+    })
 
-    const token = signToken({ sub: user.id, email: user.email, name: user.name }, 60*60*24*7)
-    setAuthCookie(res, token, req, 60*60*24*7)
+    const user = { _id: result.insertedId, email: email.toLowerCase(), name, createdAt: now }
 
-    res.statusCode = 201
-    res.setHeader('Content-Type','application/json')
-    return res.end(JSON.stringify({ ok:true, user }))
+    // Access token (15min) + refresh token (30 days)
+    const token = signToken({ sub: user._id.toString(), email: user.email, name: user.name })
+    setAuthCookie(res, token, req)
+
+    const refreshToken = generateRefreshToken()
+    await db.collection('sessions').insertOne({
+      userId: user._id,
+      refreshToken,
+      userAgent: (req.headers['user-agent'] || '').slice(0, 256),
+      ip: (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown',
+      createdAt: now,
+      expiresAt: new Date(now.getTime() + REFRESH_TTL * 1000),
+    })
+    setRefreshCookie(res, refreshToken, req)
+
+    res.statusCode = 201; res.setHeader('Content-Type', 'application/json')
+    return res.end(JSON.stringify({ ok: true, user: sanitizeUser(user) }))
   } catch (e) {
-    res.statusCode = 500; res.setHeader('Content-Type','application/json')
-    return res.end(JSON.stringify({ ok:false, error:'register_failed' }))
+    if (e.code === 11000) {
+      res.statusCode = 409; res.setHeader('Content-Type', 'application/json')
+      return res.end(JSON.stringify({ ok: false, error: 'email_taken' }))
+    }
+    res.statusCode = 500; res.setHeader('Content-Type', 'application/json')
+    return res.end(JSON.stringify({ ok: false, error: 'register_failed' }))
   }
 }

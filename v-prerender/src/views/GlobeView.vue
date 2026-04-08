@@ -50,24 +50,25 @@
       </div>
 
       <div v-else class="sites-grid">
-        <div
+        <Pin3D
           v-for="site in sites"
           :key="site.site"
-          class="site-card glow-card glow-card--subtle glow-card-light"
         >
-          <div class="site-flag">{{ countryFlag(site.country) }}</div>
-          <div class="site-info">
-            <div class="site-domain">{{ site.domain }}</div>
-            <div class="site-location">{{ site.city }}<span v-if="site.city && site.country">, </span>{{ site.country }}</div>
+          <div class="site-card glow-card glow-card--subtle glow-card-light">
+            <div class="site-flag">{{ countryCode(site.country) }}</div>
+            <div class="site-info">
+              <div class="site-domain">{{ site.domain }}</div>
+              <div class="site-location">{{ site.city }}<span v-if="site.city && site.country">, </span>{{ site.country }}</div>
+            </div>
+            <div class="site-coords">
+              <span class="coord">{{ formatCoord(site.lat, 'N', 'S') }}</span>
+              <span class="coord">{{ formatCoord(site.lng, 'E', 'O') }}</span>
+            </div>
+            <div class="site-urls" v-if="site.urlCount > 0">
+              <span class="url-badge">{{ site.urlCount }} URLs</span>
+            </div>
           </div>
-          <div class="site-coords">
-            <span class="coord">{{ formatCoord(site.lat, 'N', 'S') }}</span>
-            <span class="coord">{{ formatCoord(site.lng, 'E', 'O') }}</span>
-          </div>
-          <div class="site-urls" v-if="site.urlCount > 0">
-            <span class="url-badge">{{ site.urlCount }} URLs</span>
-          </div>
-        </div>
+        </Pin3D>
       </div>
     </section>
 
@@ -79,6 +80,7 @@ import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import Globe3D from '../components/Globe3D.vue'
 import WorldMap from '../components/WorldMap.vue'
+import Pin3D from '../components/Pin3D.vue'
 
 const apiBase = ''  // Vercel proxie /api/* automatiquement
 
@@ -111,32 +113,30 @@ function formatCoord(val, pos, neg) {
   return `${abs}° ${val >= 0 ? pos : neg}`
 }
 
-// Emoji drapeau à partir du code pays ISO2 (ex: "FR" → 🇫🇷)
-function countryFlag(country) {
-  if (!country) return '🌐'
-  // ip-api renvoie le nom du pays, pas le code ISO2 — on utilise un fallback
+// Code pays court (sans emoji)
+function countryCode(country) {
+  if (!country) return '—'
   const map = {
-    'France': '🇫🇷', 'United States': '🇺🇸', 'Germany': '🇩🇪',
-    'United Kingdom': '🇬🇧', 'Spain': '🇪🇸', 'Italy': '🇮🇹',
-    'Canada': '🇨🇦', 'Australia': '🇦🇺', 'Japan': '🇯🇵',
-    'China': '🇨🇳', 'Brazil': '🇧🇷', 'India': '🇮🇳',
-    'Netherlands': '🇳🇱', 'Sweden': '🇸🇪', 'Switzerland': '🇨🇭',
-    'Belgium': '🇧🇪', 'Portugal': '🇵🇹', 'Poland': '🇵🇱',
-    'Singapore': '🇸🇬', 'Ireland': '🇮🇪',
+    'France': 'FR', 'United States': 'US', 'Germany': 'DE',
+    'United Kingdom': 'UK', 'Spain': 'ES', 'Italy': 'IT',
+    'Canada': 'CA', 'Australia': 'AU', 'Japan': 'JP',
+    'China': 'CN', 'Brazil': 'BR', 'India': 'IN',
+    'Netherlands': 'NL', 'Sweden': 'SE', 'Switzerland': 'CH',
+    'Belgium': 'BE', 'Portugal': 'PT', 'Poland': 'PL',
+    'Singapore': 'SG', 'Ireland': 'IE',
   }
-  return map[country] || '🌍'
+  return map[country] || country.substring(0, 2).toUpperCase()
 }
 
 onMounted(refreshSites)
 </script>
 
 <style scoped>
-@import '../assets/styles/glowing-effect.css';
 
 .globe-page {
   min-height: 100vh;
-  background: #f8fafc;
-  padding: 2rem 1.5rem;
+  background: linear-gradient(135deg, #f0f4ff 0%, #faf5ff 50%, #f0fdfa 100%);
+  padding: 88px 24px 120px;
   font-family: 'Inter', system-ui, sans-serif;
 }
 
@@ -193,14 +193,13 @@ onMounted(refreshSites)
 }
 
 .globe-container {
-  width: 480px;
-  height: 480px;
+  width: 460px;
+  height: 460px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  overflow: hidden;
   flex-shrink: 0;
+  background: transparent;
 }
 
 /* ── Map section ── */
@@ -234,6 +233,11 @@ onMounted(refreshSites)
   border-radius: 1rem;
   padding: 1.5rem;
   overflow: hidden;
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
 }
 
 /* ── Sites section ── */
@@ -249,12 +253,13 @@ onMounted(refreshSites)
   font-size: 0.78rem;
   font-weight: 600;
   color: #475569;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.5);
   border-radius: 8px;
   padding: 0.3rem 0.75rem;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition: background 0.2s;
 }
 .refresh-btn:hover:not(:disabled) { background: #f1f5f9; border-color: #cbd5e1; }
 .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -280,13 +285,29 @@ onMounted(refreshSites)
   gap: 0.75rem;
   padding: 0.9rem 1rem;
   border-radius: 0.875rem;
-  border: 1px solid #e2e8f0;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  transition: transform 0.2s, box-shadow 0.2s;
   cursor: default;
 }
-.site-card:hover { border-color: #bae6fd; box-shadow: 0 4px 12px rgba(14,165,233,0.08); }
+.site-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(14,165,233,0.1); }
 
-.site-flag { font-size: 1.5rem; flex-shrink: 0; }
+.site-flag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #0ea5e9;
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.15);
+  border-radius: 6px;
+  padding: 4px 6px;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  min-width: 28px;
+  text-align: center;
+}
 
 .site-info { flex: 1; min-width: 0; }
 .site-domain {
