@@ -1,0 +1,4 @@
+src/components/CardNav.jsx
+src/components/GlassSurface.jsx
+dist/
+node_modules/
