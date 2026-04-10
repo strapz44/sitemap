@@ -8,7 +8,9 @@
           <span class="live-dot" />
           Temps réel
         </span>
-        <h1 class="hero-title">Sites surveillés<br /><span class="accent">dans le monde</span></h1>
+        <h1 class="hero-title">Sites surveillés<br />
+          <ShinyText><GradientText>dans le monde</GradientText></ShinyText>
+        </h1>
         <p class="hero-sub">
           Visualisation géographique de vos sites indexés.<br />
           {{ statsText }}
@@ -16,7 +18,7 @@
       </div>
 
       <div class="globe-container glow-card glow-card--blue glow-card-dark">
-        <Globe3D :api-base="apiBase" :size="460" :dark="true" :auto-rotate="true" />
+        <Globe3D :sites="sites" :size="460" :dark="true" :auto-rotate="true" />
       </div>
     </section>
 
@@ -81,6 +83,8 @@ import axios from 'axios'
 import Globe3D from '../components/Globe3D.vue'
 import WorldMap from '../components/WorldMap.vue'
 import Pin3D from '../components/Pin3D.vue'
+import GradientText from '../components/GradientText.vue'
+import ShinyText from '../components/ShinyText.vue'
 
 const apiBase = ''  // Vercel proxie /api/* automatiquement
 

@@ -8,9 +8,8 @@
     buttonBgColor="#111111"
     buttonTextColor="#ffffff"
     ease="power3.out"
-    @cta="go('dashboard')"
+    @cta="onCta"
   >
-    <!-- allow overriding CTA text if needed -->
     <template #cta>Connexion</template>
   </CardNav>
 </template>
@@ -20,9 +19,14 @@ import { useRouter } from 'vue-router'
 import CardNav from './CardNav.vue'
 
 const router = useRouter()
+const emit = defineEmits(['open-login'])
 
 function go(name) {
   router.push({ name })
+}
+
+function onCta() {
+  emit('open-login')
 }
 
 // build the four primary cards used by the navigation

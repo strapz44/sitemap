@@ -1,8 +1,4 @@
-import axios from 'axios'
-
-const API_BASE = (['localhost', '127.0.0.1'].includes(window.location.hostname)
-  ? '/api'
-  : (process?.env?.VUE_APP_API_URL || '/api'))
+import http from '../lib/http'
 
 export default {
   /**
@@ -16,7 +12,7 @@ export default {
     params.append('from', from)
     params.append('to', to)
     if (site) params.append('site', site)
-    return axios.get(`${API_BASE}/analytics/summary?${params}`).then(r => r.data)
+    return http.get(`/analytics/summary?${params}`).then(r => r.data)
   },
 
   /**
@@ -27,7 +23,7 @@ export default {
     params.append('from', from)
     params.append('to', to)
     if (site) params.append('site', site)
-    return axios.get(`${API_BASE}/analytics/timeseries?${params}`).then(r => r.data)
+    return http.get(`/analytics/timeseries?${params}`).then(r => r.data)
   },
 
   /**
@@ -39,7 +35,7 @@ export default {
     params.append('to', to)
     params.append('limit', limit)
     if (site) params.append('site', site)
-    return axios.get(`${API_BASE}/analytics/top-pages?${params}`).then(r => r.data)
+    return http.get(`/analytics/top-pages?${params}`).then(r => r.data)
   },
 
   /**
@@ -52,7 +48,7 @@ export default {
     params.append('to', to)
     params.append('limit', limit)
     if (site) params.append('site', site)
-    return axios.get(`${API_BASE}/analytics/top?${params}`).then(r => r.data)
+    return http.get(`/analytics/top?${params}`).then(r => r.data)
   },
 
   /**
@@ -63,27 +59,27 @@ export default {
     params.append('from', from)
     params.append('to', to)
     if (site) params.append('site', site)
-    return axios.get(`${API_BASE}/analytics/compare?${params}`).then(r => r.data)
+    return http.get(`/analytics/compare?${params}`).then(r => r.data)
   },
 
   /**
    * Lance l'analyse d'un site (refresh analytics)
    */
   analyze(siteName) {
-    return axios.post(`${API_BASE}/analytics/analyze`, { siteName }).then(r => r.data)
+    return http.post('/analytics/analyze', { siteName }).then(r => r.data)
   },
 
   /**
    * Récupère l'historique des analyses
    */
   getAnalysisHistory(siteName, limit = 10) {
-    return axios.get(`${API_BASE}/analytics/analysis-history?siteName=${encodeURIComponent(siteName)}&limit=${limit}`).then(r => r.data)
+    return http.get(`/analytics/analysis-history?siteName=${encodeURIComponent(siteName)}&limit=${limit}`).then(r => r.data)
   },
 
   /**
    * Récupère le statut d'une analyse en cours
    */
   getAnalysisStatus(jobId) {
-    return axios.get(`${API_BASE}/analytics/analysis-status?jobId=${jobId}`).then(r => r.data)
+    return http.get(`/analytics/analysis-status?jobId=${jobId}`).then(r => r.data)
   },
 }

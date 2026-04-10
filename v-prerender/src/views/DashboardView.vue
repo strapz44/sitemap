@@ -5,13 +5,12 @@
         <h1 class="title">Vue d'ensemble</h1>
         <p class="subtitle">Analyse globale de vos sites et performance</p>
       </div>
-      <button 
-        class="btn-analyze" 
+      <button
+        class="btn-analyze"
         :disabled="analyzing"
         @click="triggerAnalysis"
       >
-        <span v-if="!analyzing" class="btn-icon">↻</span>
-        <span v-else class="spinner"></span>
+        <span v-if="analyzing" class="spinner"></span>
         {{ analyzing ? 'Analyse en cours...' : 'Analyser' }}
       </button>
     </div>
@@ -36,7 +35,10 @@
           </div>
           <div class="kpi-content">
             <div class="kpi-label">{{ kpi.label }}</div>
-            <div class="kpi-value">{{ kpi.value }}</div>
+            <div class="kpi-value">
+              <GradientCountUp v-if="kpi.countUp" :value="kpi.rawValue" :suffix="kpi.suffix" />
+              <span v-else>{{ kpi.value }}</span>
+            </div>
             <div class="kpi-trend" :class="kpi.trendClass">
               {{ kpi.trend }}
             </div>
@@ -74,7 +76,7 @@
       <div class="sites-section">
         <h2 class="section-title">Performances par Site</h2>
         <div class="sites-list">
-          <div class="site-card glass-card" v-for="site in sitesOverview" :key="site.siteName">
+          <div class="site-card glass-card glow-card glow-card--blue-pulse" v-for="site in sitesOverview" :key="site.siteName">
             <div class="site-header">
               <div class="site-name">{{ site.siteName }}</div>
               <span class="site-status" :class="site.status">{{ site.statusLabel }}</span>
@@ -172,6 +174,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart, PieChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent, DataZoomComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
+import GradientCountUp from '../components/GradientCountUp.vue'
 import AnalyticsService from '../services/AnalyticsService'
 import SitemapService from '../services/SitemapService'
 import WorldMap from '../components/WorldMap.vue'
@@ -196,6 +199,9 @@ const globalKpis = computed(() => [
     id: 'pageviews',
     label: 'Total Pageviews',
     value: totalStats.value.pageviews.toLocaleString('fr-FR'),
+    rawValue: totalStats.value.pageviews,
+    countUp: true,
+    suffix: '',
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
     color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     trend: '↑ 12% vs semaine',
@@ -205,6 +211,9 @@ const globalKpis = computed(() => [
     id: 'sessions',
     label: 'Sessions',
     value: totalStats.value.sessions.toLocaleString('fr-FR'),
+    rawValue: totalStats.value.sessions,
+    countUp: true,
+    suffix: '',
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
     color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
     trend: '↑ 8% vs semaine',
@@ -214,6 +223,9 @@ const globalKpis = computed(() => [
     id: 'visitors',
     label: 'Visiteurs Uniques',
     value: totalStats.value.visitors.toLocaleString('fr-FR'),
+    rawValue: totalStats.value.visitors,
+    countUp: true,
+    suffix: '',
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
     color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
     trend: '↑ 5% vs semaine',
@@ -223,6 +235,9 @@ const globalKpis = computed(() => [
     id: 'bounce',
     label: 'Bounce Rate',
     value: (totalStats.value.bounceRate * 100).toFixed(1) + '%',
+    rawValue: null,
+    countUp: false,
+    suffix: '',
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
     color: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
     trend: '↓ 2% (amélioration)',
@@ -534,32 +549,51 @@ onUnmounted(() => {
 }
 
 .btn-analyze {
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
+  --green: #1BFD9C;
+  font-size: 15px;
+  padding: 0.7em 2.7em;
+  letter-spacing: 0.06em;
+  position: relative;
+  font-family: inherit;
+  border-radius: 0.6em;
+  overflow: hidden;
+  transition: all 0.3s;
+  line-height: 1.4em;
+  border: 2px solid var(--green);
+  background: linear-gradient(to right, rgba(27, 253, 156, 0.1) 1%, transparent 40%, transparent 60%, rgba(27, 253, 156, 0.1) 100%);
+  color: var(--green);
+  box-shadow: inset 0 0 10px rgba(27, 253, 156, 0.4), 0 0 9px 3px rgba(27, 253, 156, 0.1);
   cursor: pointer;
+  font-weight: 600;
+  text-transform: uppercase;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
 .btn-analyze:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  color: #82ffc9;
+  box-shadow: inset 0 0 10px rgba(27, 253, 156, 0.6), 0 0 9px 3px rgba(27, 253, 156, 0.2);
+}
+
+.btn-analyze::before {
+  content: "";
+  position: absolute;
+  left: -4em;
+  width: 4em;
+  height: 100%;
+  top: 0;
+  transition: transform .4s ease-in-out;
+  background: linear-gradient(to right, transparent 1%, rgba(27, 253, 156, 0.1) 40%, rgba(27, 253, 156, 0.1) 60%, transparent 100%);
+}
+
+.btn-analyze:hover::before {
+  transform: translateX(15em);
 }
 
 .btn-analyze:disabled {
-  opacity: 0.7;
+  opacity: 0.5;
   cursor: not-allowed;
-}
-
-.btn-icon {
-  font-size: 1.1em;
 }
 
 .spinner {
@@ -588,6 +622,12 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
+}
+
+/* Requis pour positionner les météores */
+.meteor-section {
+  position: relative;
+  overflow: hidden;
 }
 
 .kpi-card {
@@ -754,7 +794,7 @@ onUnmounted(() => {
 .site-card {
   border-radius: 16px;
   padding: 1.5rem;
-  border: 1px solid rgba(255,255,255,0.5);
+  /* border retiré — géré par glow-card::before */
 }
 
 .site-card:hover {

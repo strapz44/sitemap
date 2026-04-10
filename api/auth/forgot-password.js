@@ -1,38 +1,35 @@
 const crypto = require('crypto')
+const { createHandler } = require('../_handler')
 const { getDb } = require('../_mongo')
-const { setCors, handlePreflight } = require('../_cors')
-const { readBody, isValidEmail } = require('../_authHelpers')
-const { rateLimit } = require('../_rateLimit')
+const { isValidEmail } = require('../_authHelpers')
+const { sendEmail, resetPasswordEmail } = require('../_mailer')
 
 /**
  * POST /api/auth/forgot-password
- * Generates a reset token, stores it in MongoDB, returns the token info.
- * In production, this would send an email. For now, returns the reset URL.
+ *
+ * Security:
+ *   - Always returns success (prevents email enumeration)
+ *   - Token stored as SHA-256 hash (never raw in DB)
+ *   - 1-hour expiry with TTL index cleanup
+ *   - Rate limited: 3 requests per 15 minutes
+ *
+ * TODO: Integrate email provider (SendGrid, AWS SES) for production.
+ *       Until then, reset tokens are logged server-side only.
  */
-module.exports = async (req, res) => {
-  const allowed = setCors(req, res)
-  if (req.method === 'OPTIONS') return handlePreflight(req, res)
-  if (!allowed) { res.statusCode = 403; return res.end('Origin not allowed') }
-  if (req.method !== 'POST') { res.statusCode = 405; return res.end('Method Not Allowed') }
+module.exports = createHandler({
+  methods: ['POST'],
+  rateLimit: { keyPrefix: 'forgot', limit: 3, windowMs: 15 * 60 * 1000 },
+}, async ({ body, json }) => {
 
-  // Strict rate limit on password reset
-  const rl = rateLimit({ keyPrefix: 'forgot', limit: 3, windowMs: 15 * 60 * 1000 }, req)
-  if (!rl.ok) {
-    res.statusCode = 429; res.setHeader('Content-Type', 'application/json')
-    res.setHeader('Retry-After', String(rl.retryAfterSec))
-    return res.end(JSON.stringify({ ok: false, error: 'rate_limited', retryAfter: rl.retryAfterSec }))
-  }
-
-  const body = await readBody(req)
   const email = (body.email || '').toString().trim()
 
-  // Always return success (prevent email enumeration)
-  const successResponse = () => {
-    res.statusCode = 200; res.setHeader('Content-Type', 'application/json')
-    return res.end(JSON.stringify({ ok: true, message: 'Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.' }))
-  }
+  // Anti-enumeration: always return the same success message
+  const success = () => json(200, {
+    ok: true,
+    message: 'Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.',
+  })
 
-  if (!isValidEmail(email)) return successResponse()
+  if (!isValidEmail(email)) return success()
 
   try {
     const db = await getDb()
@@ -40,16 +37,16 @@ module.exports = async (req, res) => {
       email: { $regex: new RegExp(`^${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
     })
 
-    if (!user) return successResponse()
+    if (!user) return success()
 
-    // Generate secure reset token (64 bytes = 128 hex chars)
-    const token = crypto.randomBytes(64).toString('hex')
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex')
+    // Generate secure reset token (64 bytes → 128 hex chars)
+    const rawToken = crypto.randomBytes(64).toString('hex')
+    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex')
 
-    // Delete any existing reset tokens for this user
+    // Invalidate previous tokens for this user
     await db.collection('resetTokens').deleteMany({ userId: user._id })
 
-    // Store hashed token (never store raw token in DB)
+    // Store hashed token only (never the raw token)
     await db.collection('resetTokens').insertOne({
       userId: user._id,
       token: hashedToken,
@@ -57,19 +54,18 @@ module.exports = async (req, res) => {
       expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
     })
 
-    // In production: send email with reset link
-    // For now: include token in response (dev mode only)
-    const baseUrl = process.env.APP_URL || (req.headers.origin || 'http://localhost:5173')
-    const resetUrl = `${baseUrl}/reset-password?token=${token}`
+    const APP_URL = (process.env.APP_URL || 'http://localhost:5173').replace(/\/$/, '')
+    const resetUrl = `${APP_URL}/reset-password?token=${rawToken}`
+    await sendEmail({
+      to: user.email,
+      subject: 'Réinitialisation de votre mot de passe — Prerender',
+      html: resetPasswordEmail(resetUrl),
+    })
+    console.info(`[forgot-password] Reset email sent to ${email}`)
 
-    res.statusCode = 200; res.setHeader('Content-Type', 'application/json')
-    return res.end(JSON.stringify({
-      ok: true,
-      message: 'Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.',
-      // DEV ONLY — remove in production email integration
-      ...(process.env.NODE_ENV !== 'production' ? { _devResetUrl: resetUrl, _devToken: token } : {}),
-    }))
-  } catch (e) {
-    return successResponse()
+    return success()
+  } catch {
+    // Swallow errors to prevent enumeration via timing
+    return success()
   }
-}
+})

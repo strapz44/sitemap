@@ -17,6 +17,7 @@ import axios from 'axios'
 
 const props = defineProps({
   apiBase: { type: String, default: '' },
+  sites: { type: Array, default: null },
   dark: { type: Boolean, default: true },
   autoRotate: { type: Boolean, default: true },
   size: { type: Number, default: 500 },
@@ -63,24 +64,34 @@ function pickColor() {
   return ARC_COLORS[Math.floor(Math.random() * ARC_COLORS.length)]
 }
 
-// Build arcs from geolocated sites (connect each site to the next one in a chain)
+// Build arcs in a chain (O(n) instead of O(n²))
 function buildArcs(sites) {
   const valid = sites.filter(s => s.lat != null && s.lng != null)
   if (valid.length < 2) return []
 
   const arcs = []
-  for (let i = 0; i < valid.length; i++) {
-    for (let j = i + 1; j < valid.length; j++) {
-      arcs.push({
-        order: i + 1,
-        startLat: valid[i].lat,
-        startLng: valid[i].lng,
-        endLat: valid[j].lat,
-        endLng: valid[j].lng,
-        arcAlt: 0.15 + Math.random() * 0.3,
-        color: pickColor(),
-      })
-    }
+  for (let i = 0; i < valid.length - 1; i++) {
+    arcs.push({
+      order: i + 1,
+      startLat: valid[i].lat,
+      startLng: valid[i].lng,
+      endLat: valid[i + 1].lat,
+      endLng: valid[i + 1].lng,
+      arcAlt: 0.15 + Math.random() * 0.3,
+      color: pickColor(),
+    })
+  }
+  // Close the loop if more than 2 sites
+  if (valid.length > 2) {
+    arcs.push({
+      order: valid.length,
+      startLat: valid[valid.length - 1].lat,
+      startLng: valid[valid.length - 1].lng,
+      endLat: valid[0].lat,
+      endLng: valid[0].lng,
+      arcAlt: 0.15 + Math.random() * 0.3,
+      color: pickColor(),
+    })
   }
   return arcs
 }
@@ -151,9 +162,8 @@ function initScene() {
 
 function initGlobe(arcs) {
   if (!scene) return
-  globe = new ThreeGlobe({ waitForGlobeReady: true, animateIn: true })
+  globe = new ThreeGlobe({ waitForGlobeReady: false, animateIn: false })
     .globeImageUrl('https://cdn.jsdelivr.net/npm/three-globe@2/example/img/earth-night.jpg')
-    .bumpImageUrl('https://cdn.jsdelivr.net/npm/three-globe@2/example/img/earth-topology.png')
     .showAtmosphere(true)
     .atmosphereColor(GLOBE_CONFIG.atmosphereColor)
     .atmosphereAltitude(GLOBE_CONFIG.atmosphereAltitude)
@@ -213,13 +223,15 @@ onMounted(async () => {
   initScene()
   if (!scene) return
 
-  const sites = await fetchSites()
-  const arcs = buildArcs(sites)
-
-  initGlobe(arcs)
+  // Start rendering immediately — spinner disappears right away
+  animate()
   ready.value = true
 
-  animate()
+  // Use passed sites or fetch from API
+  const siteData = props.sites ?? await fetchSites()
+  const arcs = buildArcs(siteData)
+
+  initGlobe(arcs)
 })
 
 onBeforeUnmount(() => {

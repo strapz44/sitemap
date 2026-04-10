@@ -12,21 +12,21 @@
           <div class="analytics-grid">
             <div class="analytics-card">
               <div class="analytic-label">Pageviews (7j)</div>
-              <div class="analytic-value">{{ analyticsData.pageviews }}</div>
+              <div class="analytic-value"><GradientCountUp :value="analyticsData.pageviews" /></div>
               <div class="analytic-change" :class="analyticsData.pageviewsTrend > 0 ? 'positive' : 'negative'">
                 {{ analyticsData.pageviewsTrend > 0 ? '↑' : '↓' }} {{ Math.abs(analyticsData.pageviewsTrend) }}%
               </div>
             </div>
             <div class="analytics-card">
               <div class="analytic-label">Sessions</div>
-              <div class="analytic-value">{{ analyticsData.sessions }}</div>
+              <div class="analytic-value"><GradientCountUp :value="analyticsData.sessions" /></div>
               <div class="analytic-change" :class="analyticsData.sessionsTrend > 0 ? 'positive' : 'negative'">
                 {{ analyticsData.sessionsTrend > 0 ? '↑' : '↓' }} {{ Math.abs(analyticsData.sessionsTrend) }}%
               </div>
             </div>
             <div class="analytics-card">
               <div class="analytic-label">Visiteurs</div>
-              <div class="analytic-value">{{ analyticsData.visitors }}</div>
+              <div class="analytic-value"><GradientCountUp :value="analyticsData.visitors" /></div>
               <div class="analytic-change">Uniques</div>
             </div>
             <div class="analytics-card">
@@ -136,7 +136,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Sticky footer with actions at the bottom -->
     <div v-if="!loading" class="sticky-footer">
       <div class="footer-actions">
@@ -151,6 +151,7 @@
 import { onMounted, ref, computed, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+import GradientCountUp from '../components/GradientCountUp.vue'
 import AnalyticsService from '../services/AnalyticsService'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'

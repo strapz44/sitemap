@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuth } from '../composables/useAuth'
 
 // Lazy-load all views for faster initial page load
 const SitemapView        = () => import(/* webpackChunkName: "sitemaps" */  '../views/SitemapView.vue')
@@ -32,16 +33,24 @@ const router = createRouter({
   routes,
 })
 
-function isAuthenticated() {
-  // Check for auth_token cookie
-  return document.cookie.split(';').some(c => c.trim().startsWith('auth_token='))
-}
+/**
+ * Navigation guard — uses composable state when available,
+ * falls back to cookie check for the initial cold load.
+ */
+router.beforeEach((to, _from, next) => {
+  const { isAuthenticated, initialized } = useAuth()
 
-router.beforeEach((to, from, next) => {
-  if (to.meta.requiresAuth && !isAuthenticated()) {
+  // Use reactive state if auth has been initialized, otherwise fallback to cookie
+  const loggedIn = initialized.value
+    ? isAuthenticated.value
+    : document.cookie.split(';').some(c => c.trim().startsWith('auth_token='))
+
+  console.debug('[router guard]', { to: to.fullPath, initialized: initialized.value, isAuth: isAuthenticated.value, loggedIn, cookie: document.cookie })
+
+  if (to.meta.requiresAuth && !loggedIn) {
     return next({ name: 'login', query: { redirect: to.fullPath } })
   }
-  if (to.meta.requiresGuest && isAuthenticated()) {
+  if (to.meta.requiresGuest && loggedIn) {
     return next({ name: 'dashboard' })
   }
   next()

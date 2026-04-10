@@ -1,24 +1,22 @@
+const { createHandler } = require('../_handler')
 const { getDb } = require('../_mongo')
-const { setCors, handlePreflight } = require('../_cors')
 const { clearAuthCookie, clearRefreshCookie, getRefreshTokenFromRequest } = require('../_tokens')
 
-module.exports = async (req, res) => {
-  const allowed = setCors(req, res)
-  if (req.method === 'OPTIONS') return handlePreflight(req, res)
-  if (!allowed) { res.statusCode = 403; return res.end('Origin not allowed') }
-  if (req.method !== 'POST') { res.statusCode = 405; return res.end('Method Not Allowed') }
+module.exports = createHandler({
+  methods: ['POST'],
+}, async ({ json, req, res }) => {
 
-  // Revoke refresh token session in MongoDB
+  // Revoke refresh token session in MongoDB (best-effort)
   const refreshToken = getRefreshTokenFromRequest(req)
   if (refreshToken) {
     try {
       const db = await getDb()
       await db.collection('sessions').deleteOne({ refreshToken })
-    } catch { /* best effort */ }
+    } catch { /* best effort — logout should never fail */ }
   }
 
   clearAuthCookie(res, req)
   clearRefreshCookie(res, req)
-  res.setHeader('Content-Type', 'application/json')
-  return res.end(JSON.stringify({ ok: true }))
-}
+
+  return json(200, { ok: true })
+})

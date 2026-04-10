@@ -22,15 +22,15 @@
       <div class="kpis">
         <div class="kpi">
           <div class="kpi-label">Pageviews</div>
-          <div class="kpi-value">{{ summary.pageviews }}</div>
+          <div class="kpi-value"><GradientCountUp :value="summary.pageviews" /></div>
         </div>
         <div class="kpi">
           <div class="kpi-label">Sessions</div>
-          <div class="kpi-value">{{ summary.sessions }}</div>
+          <div class="kpi-value"><GradientCountUp :value="summary.sessions" /></div>
         </div>
         <div class="kpi">
           <div class="kpi-label">Visiteurs</div>
-          <div class="kpi-value">{{ summary.visitors }}</div>
+          <div class="kpi-value"><GradientCountUp :value="summary.visitors" /></div>
         </div>
         <div class="kpi">
           <div class="kpi-label">Bounce rate</div>
@@ -94,6 +94,7 @@ import { LineChart, BarChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import axios from 'axios'
+import GradientCountUp from '../components/GradientCountUp.vue'
 
 use([CanvasRenderer, LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent])
 

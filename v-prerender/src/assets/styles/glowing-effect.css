@@ -93,6 +93,30 @@
   }
 }
 
+/* ── Variante bleue projet (Performances par Site) ────────── */
+.glow-card--blue-pulse::before {
+  background: conic-gradient(
+    from var(--glow-angle, 0deg),
+    transparent 0%,
+    transparent 35%,
+    #3b82f6 55%,
+    #60a5fa 68%,
+    #818cf8 80%,
+    #3b82f6 90%,
+    transparent 100%
+  );
+  /* Toujours visible au repos */
+  opacity: 0.45;
+  animation-play-state: running;
+  animation-duration: 3s;
+  transition: opacity 0.3s ease;
+}
+
+/* S'intensifie au hover */
+.glow-card--blue-pulse:hover::before {
+  opacity: 1;
+}
+
 /* ── Utilitaire: fond sombre pour les cartes globe ────────── */
 .glow-card-dark {
   background: rgba(15, 23, 42, 0.85);

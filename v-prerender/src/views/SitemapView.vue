@@ -10,7 +10,7 @@
             <p class="hero-sub">{{ statsText }}</p>
           </div>
           <div class="hero-globe">
-            <Globe3D :api-base="apiBase" :size="500" :dark="true" :auto-rotate="true" />
+            <Globe3D :api-base="apiBase" :size="560" :dark="true" :auto-rotate="true" />
           </div>
         </section>
 
@@ -26,7 +26,9 @@
               :disabled="isLoading"
               @keyup.enter="addSitemap"
             />
-            <NoiseButton :disabled="isLoading" @click="addSitemap">Ajouter</NoiseButton>
+            <button class="neon-btn" :disabled="isLoading" @click="addSitemap">
+              {{ isLoading ? 'Ajout…' : 'Ajouter' }}
+            </button>
           </div>
           <div v-if="error" class="error-message">{{ error }}</div>
         </section>
@@ -69,7 +71,9 @@
                     <button class="action-btn" @click="openSiteSummary(item)">Détails</button>
                     <button class="action-btn" :disabled="!!refreshing[item.siteName]" @click="refreshSitemap(item.siteName)">{{ refreshing[item.siteName] ? 'Analyse…' : 'Analyser' }}</button>
                     <button class="delete-btn" @click="deleteSitemap(item.siteName)">
-                      <svg class="svgIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                      <svg viewBox="0 0 448 512" class="svgIcon">
+                        <path d="M135.2 17.7L128 32H32C14.3 32 0 46.3 0 64S14.3 96 32 96H416c17.7 0 32-14.3 32-32s-14.3-32-32-32H320l-7.2-14.3C307.4 6.8 296.3 0 284.2 0H163.8c-12.1 0-23.2 6.8-28.6 17.7zM416 128H32L53.2 467c1.6 25.3 22.6 45 47.9 45H346.9c25.3 0 46.3-19.7 47.9-45L416 128z"/>
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -92,7 +96,6 @@
   import gsap from 'gsap'
   import { useRouter } from 'vue-router'
   import axios from 'axios'
-  import NoiseButton from '../components/NoiseButton.vue'
   import Globe3D from '../components/Globe3D.vue'
   
   
@@ -388,8 +391,8 @@
 
   .hero-globe {
     flex-shrink: 0;
-    width: 520px;
-    height: 520px;
+    width: 560px;
+    height: 560px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -430,6 +433,50 @@
     box-shadow: 0 0 0 3px rgba(14,165,233,0.12);
   }
   .input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* ── Neon Button ─────────────────────────────────────────── */
+  .neon-btn {
+    --green: #1BFD9C;
+    font-size: 15px;
+    padding: 0.7em 2.7em;
+    letter-spacing: 0.06em;
+    position: relative;
+    font-family: inherit;
+    border-radius: 0.6em;
+    overflow: hidden;
+    transition: all 0.3s;
+    line-height: 1.4em;
+    border: 2px solid var(--green);
+    background: linear-gradient(to right, rgba(27, 253, 156, 0.1) 1%, transparent 40%, transparent 60%, rgba(27, 253, 156, 0.1) 100%);
+    color: var(--green);
+    box-shadow: inset 0 0 10px rgba(27, 253, 156, 0.4), 0 0 9px 3px rgba(27, 253, 156, 0.1);
+    cursor: pointer;
+    flex-shrink: 0;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .neon-btn:hover {
+    color: #82ffc9;
+    box-shadow: inset 0 0 10px rgba(27, 253, 156, 0.6), 0 0 9px 3px rgba(27, 253, 156, 0.2);
+  }
+  .neon-btn::before {
+    content: "";
+    position: absolute;
+    left: -4em;
+    width: 4em;
+    height: 100%;
+    top: 0;
+    transition: transform .4s ease-in-out;
+    background: linear-gradient(to right, transparent 1%, rgba(27, 253, 156, 0.1) 40%, rgba(27, 253, 156, 0.1) 60%, transparent 100%);
+  }
+  .neon-btn:hover::before {
+    transform: translateX(15em);
+  }
+  .neon-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 
   .error-message {
     color: #dc2626;
@@ -544,21 +591,53 @@
   .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
   .delete-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: #fff;
-    border: 1px solid #fecaca;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: rgb(20, 20, 20);
+    border: none;
+    font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0px 0px 16px rgba(0, 0, 0, 0.164);
     cursor: pointer;
-    transition: all 0.15s ease;
-    padding: 0;
+    transition-duration: .3s;
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
   }
-  .delete-btn:hover { background: #fef2f2; border-color: #ef4444; }
-  .svgIcon { width: 16px; height: 16px; color: #ef4444; }
-  .delete-btn:hover .svgIcon { color: #b91c1c; }
+  .svgIcon {
+    width: 10px;
+    transition-duration: .3s;
+  }
+  .svgIcon path { fill: white; }
+  .delete-btn:hover {
+    width: 110px;
+    border-radius: 50px;
+    transition-duration: .3s;
+    background-color: rgb(255, 69, 69);
+    align-items: center;
+  }
+  .delete-btn:hover .svgIcon {
+    width: 38px;
+    transition-duration: .3s;
+    transform: translateY(60%);
+  }
+  .delete-btn::before {
+    position: absolute;
+    top: -20px;
+    content: "Delete";
+    color: white;
+    transition-duration: .3s;
+    font-size: 2px;
+  }
+  .delete-btn:hover::before {
+    font-size: 12px;
+    opacity: 1;
+    transform: translateY(28px);
+    transition-duration: .3s;
+  }
 
   /* ── Empty state ─────────────────────────────────────────── */
   .empty-state {
@@ -578,23 +657,54 @@
     background: rgba(248,250,252,0.95);
   }
 
-  /* ── Responsive ──────────────────────────────────────────── */
-  @media (max-width: 768px) {
+  /* ── Responsive tablette ─────────────────────────────────── */
+  @media (max-width: 960px) {
     .hero-section {
       flex-direction: column;
+      align-items: center;
       text-align: center;
-      gap: 24px;
+      gap: 32px;
     }
     .hero-globe {
-      width: 280px;
-      height: 280px;
+      width: 380px;
+      height: 380px;
     }
-    .hero-title { font-size: 1.75rem; }
+    .hero-title { font-size: 2rem; }
+    .badge-live { margin: 0 auto 16px; }
+    .add-inner { flex-direction: column; gap: 12px; }
+    .neon-btn { width: 100%; }
+    .input { width: 100%; }
+  }
+
+  /* ── Responsive mobile ───────────────────────────────────── */
+  @media (max-width: 600px) {
+    .page-container { padding: 72px 12px 80px; }
+    .hero-section { gap: 20px; }
+    .hero-globe {
+      width: 260px;
+      height: 260px;
+    }
+    .hero-title { font-size: 1.6rem; }
+    .hero-sub { font-size: 0.88rem; }
+    .section-title { font-size: 1rem; }
     .card-inner {
       grid-template-columns: 1fr;
-      gap: 12px;
+      gap: 10px;
     }
-    .card-actions { justify-content: flex-start; }
-    .page-container { padding: 80px 16px 100px; }
+    .card-left { min-width: 0; }
+    .card-center { display: none; }
+    .card-actions {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .action-btn { font-size: 0.78rem; padding: 6px 12px; }
+    .delete-btn { width: 34px !important; height: 34px !important; }
+    .sitemap-card { padding: 12px; }
+    .site-domain { font-size: 0.85rem; }
+    .site-meta { flex-wrap: wrap; gap: 4px; }
+    .add-section { padding: 14px; }
+    .neon-btn { width: 100%; }
+    .section-header { flex-wrap: wrap; gap: 6px; }
   }
 </style>

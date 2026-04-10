@@ -46,7 +46,7 @@ module.exports = {
       app.post('/api/auth/login', (req, res) => {
         try {
           const email = (req.body && req.body.email) || 'dev@example.com'
-          res.cookie('auth_token', 'mock-jwt-token', { httpOnly: true, path: '/' })
+          res.cookie('auth_token', 'mock-jwt-token', { httpOnly: false, path: '/' })
           res.cookie('refresh_token', 'mock-refresh-token', { httpOnly: true, path: '/api/auth' })
           return res.json({ ok: true, user: { id: '1', email, name: 'Dev User', twoFactor: { enabled: false } } })
         } catch (e) {
@@ -56,11 +56,15 @@ module.exports = {
       app.post('/api/auth/register', (req, res) => {
         const email = (req.body && req.body.email) || 'dev@example.com'
         const name = (req.body && req.body.name) || 'Dev User'
-        res.cookie('auth_token', 'mock-jwt-token', { httpOnly: true, path: '/' })
+        res.cookie('auth_token', 'mock-jwt-token', { httpOnly: false, path: '/' })
         res.cookie('refresh_token', 'mock-refresh-token', { httpOnly: true, path: '/api/auth' })
         return res.json({ ok: true, user: { id: '1', email, name, twoFactor: { enabled: false } } })
       })
-      app.get('/api/auth/me', (_req, res) => {
+      app.get('/api/auth/me', (req, res) => {
+        const cookies = (req.headers.cookie || '')
+        if (!cookies.includes('auth_token=')) {
+          return res.status(401).json({ ok: false, error: 'unauthenticated' })
+        }
         return res.json({ ok: true, user: { id: '1', email: 'dev@example.com', name: 'Dev User', twoFactor: { enabled: false } } })
       })
       app.post('/api/auth/logout', (_req, res) => {
@@ -68,11 +72,29 @@ module.exports = {
         res.clearCookie('refresh_token', { path: '/api/auth' })
         return res.json({ ok: true })
       })
-      app.post('/api/auth/forgot-password', (_req, res) => {
-        return res.json({ ok: true })
+      app.post('/api/auth/forgot-password', (req, res) => {
+        const email = (req.body && req.body.email) || ''
+        console.info(`[DEV mock] Password reset email would be sent to: ${email}`)
+        console.info(`[DEV mock] Reset link: http://localhost:5173/reset-password?token=dev-mock-token-123`)
+        return res.json({ ok: true, message: 'Si un compte existe avec cet email, un lien de réinitialisation a été envoyé.' })
       })
-      app.post('/api/auth/reset-password', (_req, res) => {
-        return res.json({ ok: true })
+      app.post('/api/auth/reset-password', (req, res) => {
+        const token = (req.body && req.body.token) || ''
+        if (!token) return res.status(400).json({ ok: false, error: 'missing_token' })
+        return res.json({ ok: true, message: 'Mot de passe mis à jour avec succès. Veuillez vous reconnecter.' })
+      })
+
+      // Google OAuth mock (dev only — auto-login without real Google)
+      app.get('/api/auth/google', (req, res) => {
+        const code = req.query.code
+        if (!code) {
+          // Simulate redirect to Google → immediately return with mock code
+          return res.redirect('/api/auth/google?code=dev-mock-code')
+        }
+        // Simulate callback — set cookies and redirect to dashboard
+        res.cookie('auth_token', 'mock-jwt-token-google', { httpOnly: false, path: '/' })
+        res.cookie('refresh_token', 'mock-refresh-token-google', { httpOnly: true, path: '/api/auth' })
+        return res.redirect('/dashboard')
       })
       app.post('/api/auth/2fa', (req, res) => {
         const action = req.body && req.body.action
@@ -82,8 +104,13 @@ module.exports = {
         return res.status(400).json({ error: 'invalid_action' })
       })
       app.post('/api/auth/refresh', (_req, res) => {
-        res.cookie('auth_token', 'mock-jwt-token-refreshed', { httpOnly: true, path: '/' })
+        res.cookie('auth_token', 'mock-jwt-token-refreshed', { httpOnly: false, path: '/' })
         res.cookie('refresh_token', 'mock-refresh-token-refreshed', { httpOnly: true, path: '/api/auth' })
+        return res.json({ ok: true })
+      })
+
+      // Collect endpoint (analytics tracking)
+      app.post('/api/collect', (_req, res) => {
         return res.json({ ok: true })
       })
 

@@ -35,10 +35,13 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import axios from 'axios'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuth } from '../composables/useAuth'
 
 const router = useRouter()
+const route  = useRoute()
+const { login } = useAuth()
+
 const email = ref('')
 const password = ref('')
 const totpCode = ref('')
@@ -47,9 +50,6 @@ const loading = ref(false)
 const error = ref('')
 const needs2FA = ref(false)
 const showBackup = ref(false)
-
-const API_URL = (['localhost','127.0.0.1'].includes(window.location.hostname) ? '/api'
-  : ((import.meta?.env?.VITE_API_URL) || (process?.env?.VUE_APP_API_URL) || '/api'))
 
 async function onSubmit(){
   error.value = ''
@@ -60,13 +60,18 @@ async function onSubmit(){
       if (backupCode.value) payload.backupCode = backupCode.value
       else payload.totpCode = totpCode.value
     }
-    const { data } = await axios.post(`${API_URL}/auth/login`, payload)
+    const data = await login(payload)
+    console.debug('[LoginView] login result:', data)
     if (data.requires2FA) {
       needs2FA.value = true
       loading.value = false
       return
     }
-    if (data.ok) router.push('/dashboard')
+    if (data.ok) {
+      const redirect = route.query.redirect || '/dashboard'
+      console.debug('[LoginView] navigating to:', redirect)
+      await router.push(redirect)
+    }
   } catch (e) {
     const status = e?.response?.status
     const detail = e?.response?.data?.error || e?.message
